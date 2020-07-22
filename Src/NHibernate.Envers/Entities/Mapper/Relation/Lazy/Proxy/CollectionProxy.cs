@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Threading;
 using System.Threading.Tasks;
 using NHibernate.Collection;
@@ -9,11 +10,13 @@ using NHibernate.Envers.Entities.Mapper.Relation.Lazy.Initializor;
 namespace NHibernate.Envers.Entities.Mapper.Relation.Lazy.Proxy
 {
 	[Serializable]
-	public class CollectionProxy<T> : ICollection<T>, ILazyInitializedCollection
+	public class CollectionProxy<T> : ICollection<T>, ILazyInitializedCollection, INotifyCollectionChanged
 	{
 		[NonSerialized]
 		private readonly IInitializor _initializor;
 		private ICollection<T> _collection;
+
+		public event NotifyCollectionChangedEventHandler CollectionChanged;
 
 		protected CollectionProxy(IInitializor initializor)
 		{
@@ -44,11 +47,13 @@ namespace NHibernate.Envers.Entities.Mapper.Relation.Lazy.Proxy
 		public void Add(T item)
 		{
 			GetCollection<ICollection<T>>().Add(item);
+			CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item));
 		}
 
 		public void Clear()
 		{
 			GetCollection<ICollection<T>>().Clear();
+			CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
 		}
 
 		public bool Contains(T item)
@@ -63,7 +68,9 @@ namespace NHibernate.Envers.Entities.Mapper.Relation.Lazy.Proxy
 
 		public bool Remove(T item)
 		{
-			return GetCollection<ICollection<T>>().Remove(item);
+			var removeResult = GetCollection<ICollection<T>>().Remove(item);
+			CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item));
+			return removeResult;
 		}
 
 		public int Count => GetCollection<ICollection<T>>().Count;
