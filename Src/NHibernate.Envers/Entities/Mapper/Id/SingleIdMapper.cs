@@ -92,6 +92,11 @@ namespace NHibernate.Envers.Entities.Mapper.Id
 			return new SingleIdMapper(new PropertyData(prefix + _propertyData.Name, _propertyData));
 		}
 
+		internal IIdMapper SetName(string name)
+		{
+			return new SingleIdMapper(new PropertyData(name, _propertyData));
+		}
+
 		public override IList<QueryParameterData> MapToQueryParametersFromId(object obj)
 		{
 			return new List<QueryParameterData> { new QueryParameterData(_propertyData.Name, obj) };
