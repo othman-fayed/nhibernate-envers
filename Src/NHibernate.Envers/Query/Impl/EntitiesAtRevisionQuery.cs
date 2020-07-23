@@ -57,8 +57,12 @@ namespace NHibernate.Envers.Query.Impl
 			var revisionPropertyPath = verEntCfg.RevisionNumberPath;
 			var originalIdPropertyName = verEntCfg.OriginalIdPropName;
 
-			var referencedIdData = new MiddleIdData(verEntCfg, VerCfg.EntCfg[EntityName].IdMappingData,
-					null, EntityName, VerCfg.EntCfg.IsVersioned(EntityName));
+			var referencedIdData = new MiddleIdData(
+				verEntCfg,
+				VerCfg.EntCfg[EntityName].IdMappingData,
+				prefix: null,
+				EntityName,
+				VerCfg.EntCfg.IsVersioned(EntityName));
 
 			// (selecting e entities at revision :revision)
 			// --> based on auditStrategy (see above)
@@ -69,7 +73,7 @@ namespace NHibernate.Envers.Query.Impl
 			// e.revision_type != DEL
 			if (!_includeDeletions)
 			{
-				QueryBuilder.RootParameters.AddWhereWithParam(verEntCfg.RevisionTypePropName, "<>", RevisionType.Deleted);				
+				QueryBuilder.RootParameters.AddWhereWithParam(verEntCfg.RevisionTypePropName, "<>", RevisionType.Deleted);
 			}
 
 			// all specified conditions

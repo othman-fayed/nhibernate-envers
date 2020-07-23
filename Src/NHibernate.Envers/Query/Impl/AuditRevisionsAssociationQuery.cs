@@ -183,7 +183,11 @@ namespace NHibernate.Envers.Query.Impl
 
 					//filter reference of target entity
 					var revisionPropertyPath = verEntCfg.RevisionNumberPath;
-					var referencedIdData = new MiddleIdData(verEntCfg, _auditConfiguration.EntCfg[_entityName].IdMappingData, null, _entityName, _auditConfiguration.EntCfg.IsVersioned(_entityName));
+					var referencedIdData = new MiddleIdData(
+						verEntCfg,
+						_auditConfiguration.EntCfg[_entityName].IdMappingData,
+						prefix: null, _entityName, _auditConfiguration.EntCfg.IsVersioned(_entityName));
+
 					_auditConfiguration.GlobalCfg.AuditStrategy.AddEntityAtRevisionRestriction(_queryBuilder, _parameters, revisionPropertyPath, verEntCfg.RevisionEndFieldName, true, referencedIdData, revisionPropertyPath, originalIdPropertyName, _alias, _queryBuilder.GenerateAlias());
 				}
 				else
