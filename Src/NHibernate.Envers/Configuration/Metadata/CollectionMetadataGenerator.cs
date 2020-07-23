@@ -119,15 +119,40 @@ namespace NHibernate.Envers.Configuration.Metadata
 			log.Debug("Adding audit mapping for property {0}. {1}" +
 					": one-to-many collection, using a join column on the referenced entity.", _referencingEntityName, _propertyName);
 
-			var mappedBy = getMappedBy(_propertyValue);
+			var mappedByProperty = getMappedByProperty(_propertyValue);
+			var mappedBy = mappedByProperty?.Name;
 
 			var referencedIdMapping = _mainGenerator.GetReferencedIdMappingData(_referencingEntityName,
 						_referencedEntityName, _propertyAuditingData, false);
 			var referencingIdMapping = _referencingEntityConfiguration.IdMappingData;
 
-			// Generating the id mappers data for the referencing side of the relation.
-			var referencingIdData = createMiddleIdData(referencingIdMapping,
+			//// Generating the id mappers data for the referencing side of the relation.
+			//var referencingIdData = createMiddleIdData(referencingIdMapping,
+			//		mappedBy + MappingTools.RelationCharacter, _referencingEntityName);
+
+
+			MiddleIdData referencingIdData;
+
+			// HACK: Terrible hack to fix LegOrSectorID
+			if ("AviMall.Supplier.Data.Permit" == _referencedEntityName &&
+				"AviMall.Supplier.Data.AdhocFlightLeg" == _referencingEntityName)
+			{
+				// The relational property is Id and navigation.
+
+				referencingIdData = new MiddleIdData(
+					_mainGenerator.VerEntCfg,
+					referencingIdMapping,
+					mappedByProperty,
+					_referencingEntityName,
+					_mainGenerator.EntitiesConfigurations.ContainsKey(_referencingEntityName)
+					);
+			}
+			else
+			{
+				// Generating the id mappers data for the referencing side of the relation.
+				referencingIdData = createMiddleIdData(referencingIdMapping,
 					mappedBy + MappingTools.RelationCharacter, _referencingEntityName);
+			}
 
 			// And for the referenced side. The prefixed mapper won't be used (as this collection isn't persisted
 			// in a join table, so the prefix value is arbitrary).
@@ -167,8 +192,8 @@ namespace NHibernate.Envers.Configuration.Metadata
 
 				fakeBidirectionalRelationMapper = new ToOneIdMapper(
 						relMapper,
-					// The mapper will only be used to map from entity to map, so no need to provide other details
-					// when constructing the PropertyData.
+						// The mapper will only be used to map from entity to map, so no need to provide other details
+						// when constructing the PropertyData.
 						new PropertyData(auditMappedBy, null, null),
 						_referencedEntityName, false);
 
@@ -527,7 +552,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 				collectionMapper = (IPropertyMapper)methodInfo.Invoke(collectionProxyMapperFactory,
 					new object[] { commonCollectionMapperData, elementComponentData, indexComponentData, embeddableElementType });
 			}
-			else if (propertyValueType == typeof (Map))
+			else if (propertyValueType == typeof(Map))
 			{
 				if (_propertyValue.IsSorted)
 				{
@@ -610,10 +635,10 @@ namespace NHibernate.Envers.Configuration.Metadata
 			return _propertyValue.Element.Type is ComponentType;
 		}
 
-		private string getMappedBy(Mapping.Collection collectionValue)
+		private Property getMappedByProperty(Mapping.Collection collectionValue)
 		{
 			var referencedClass = _mainGenerator.Cfg.GetClassMapping(MappingTools.ReferencedEntityName(collectionValue.Element));
-			var mappedBy = searchMappedBy(referencedClass, collectionValue);
+			var mappedBy = searchMappedByProperty(referencedClass, collectionValue);
 
 			if (mappedBy == null)
 			{
@@ -622,7 +647,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 				while (mappedBy == null && tempClass.Superclass != null)
 				{
 					log.Debug("Searching in superclass: " + tempClass.Superclass.ClassName);
-					mappedBy = searchMappedBy(tempClass.Superclass, collectionValue);
+					mappedBy = searchMappedByProperty(tempClass.Superclass, collectionValue);
 					tempClass = tempClass.Superclass;
 				}
 			}
@@ -630,6 +655,8 @@ namespace NHibernate.Envers.Configuration.Metadata
 				throw new MappingException("Cannot find the inverse side for " + _propertyName + " in " + _referencingEntityName + "!");
 			return mappedBy;
 		}
+
+		private string getMappedBy(Mapping.Collection collectionValue) => getMappedByProperty(collectionValue)?.Name;
 
 		private string getMappedBy(Table collectionTable, PersistentClass referencedClass)
 		{
@@ -662,14 +689,19 @@ namespace NHibernate.Envers.Configuration.Metadata
 
 		private static string searchMappedBy(PersistentClass referencedClass, Mapping.Collection collectionValue)
 		{
+			return searchMappedByProperty(referencedClass, collectionValue)?.Name;
+		}
+
+		private static Property searchMappedByProperty(PersistentClass referencedClass, Mapping.Collection collectionValue)
+		{
 			foreach (var property in referencedClass.PropertyIterator)
 			{
-				if(MetadataTools.IsNoneAccess(property.PropertyAccessorName))
+				if (MetadataTools.IsNoneAccess(property.PropertyAccessorName))
 					continue;
 				//should probably not care if order is same...
 				if (property.Value.ColumnIterator.SequenceEqual(collectionValue.Key.ColumnIterator))
 				{
-					return property.Name;
+					return property;
 				}
 			}
 			return null;
@@ -692,3 +724,4 @@ namespace NHibernate.Envers.Configuration.Metadata
 		}
 	}
 }
+
