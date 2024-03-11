@@ -41,7 +41,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 		// Map entity name -> (join descriptor -> element describing the "versioned" join)
 		private readonly IDictionary<string, IDictionary<Join, XElement>> entitiesJoins;
 
-		public AuditMetadataGenerator(IMetaDataStore metaDataStore, 
+		public AuditMetadataGenerator(IMetaDataStore metaDataStore,
 										Cfg.Configuration cfg,
 										GlobalConfiguration globalCfg,
 										AuditEntitiesConfiguration verEntCfg,
@@ -153,7 +153,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 				var oneToOne = (OneToOne)value;
 				if (oneToOne.ReferencedPropertyName != null && propertyAuditingData.RelationTargetAuditMode != RelationTargetAuditMode.NotAudited)
 				{
-					toOneRelationMetadataGenerator.AddOneToOneNotOwning(propertyAuditingData, value, currentMapper, entityName);	
+					toOneRelationMetadataGenerator.AddOneToOneNotOwning(propertyAuditingData, value, currentMapper, entityName);
 				}
 				else
 				{
@@ -164,8 +164,8 @@ namespace NHibernate.Envers.Configuration.Metadata
 			}
 			else if (type is CollectionType)
 			{
-				
-				var collectionMetadataGenerator = new CollectionMetadataGenerator(_metaDataStore, this, (Mapping.Collection) value, currentMapper, entityName,
+
+				var collectionMetadataGenerator = new CollectionMetadataGenerator(_metaDataStore, this, (Mapping.Collection)value, currentMapper, entityName,
 																										xmlMappingData, propertyAuditingData);
 				collectionMetadataGenerator.AddCollection();
 			}
@@ -214,9 +214,10 @@ namespace NHibernate.Envers.Configuration.Metadata
 			}
 		}
 
-		private bool isPropertyInsertable(Property property) {
+		private bool isPropertyInsertable(Property property)
+		{
 			if (!property.IsInsertable &&
-			    (property.Generation == PropertyGeneration.Insert || property.Generation == PropertyGeneration.Always))
+				(property.Generation == PropertyGeneration.Insert || property.Generation == PropertyGeneration.Always))
 			{
 				return true;
 			}
@@ -432,7 +433,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 			if (idMapper == null)
 			{
 				throw new AuditException("Id mapping for type " + pc.ClassName +
-				                         " is currently not supported in Envers. If you need composite-id, use 'Components as composite identifiers'.");
+										 " is currently not supported in Envers. If you need composite-id, use 'Components as composite identifiers'.");
 			}
 
 			var inheritanceType = pc.GetInheritanceType();
@@ -489,12 +490,21 @@ namespace NHibernate.Envers.Configuration.Metadata
 			createJoins(pc, classMapping, auditingData);
 			addJoins(pc, propertyMapper, auditingData, pc.EntityName, xmlMappingData, true);
 
+			addSynthetics(classMapping, auditingData, propertyMapper, xmlMappingData, pc.EntityName);
+
 			// Storing the generated configuration
 			var entityCfg = new EntityConfiguration(auditEntityName, pc.ClassName, idMapper,
 					propertyMapper, parentEntityName, factory);
 			EntitiesConfigurations.Add(pc.EntityName, entityCfg);
 		}
 
+		private void addSynthetics(XElement classMapping, ClassAuditingData auditingData, ICompositeMapperBuilder currentMapper, EntityXmlMappingData xmlMappingData, string entityName)
+		{
+			foreach (var propertyAuditingData in auditingData.SynthenticProperties())
+			{
+				AddValue(classMapping, propertyAuditingData.Value, currentMapper, entityName, xmlMappingData, propertyAuditingData, true, true, false);
+			}
+		}
 		public void GenerateSecondPass(PersistentClass pc, ClassAuditingData auditingData,
 										EntityXmlMappingData xmlMappingData)
 		{

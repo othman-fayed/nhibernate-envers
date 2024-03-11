@@ -82,7 +82,7 @@ namespace NHibernate.Envers.Strategy
 			referencingIdData.PrefixedMapper.AddIdsEqualToQuery(maxEeRevQbParameters, eeOriginalIdPropertyPath, ee2OriginalIdPropertyPath);
 
 			foreach (var componentData in componentDatas)
-			{
+			{ 
 				componentData.ComponentMapper.AddMiddleEqualToQuery(maxEeRevQbParameters, eeOriginalIdPropertyPath, alias1, ee2OriginalIdPropertyPath, QueryConstants.MiddleEntityAliasDefAudStr);
 			}
 

@@ -28,6 +28,11 @@
 		/// <summary>
 		/// A collection-of-references-valued relation. The entity doesn't own the relation. It is mapped using a middle table.
 		/// </summary>
-		ToManyMiddleNotOwning
+		ToManyMiddleNotOwning,
+		
+		/// <summary>
+		/// A collection-of-references-valued relation. The entity owns the relation (parent). It is directly mapped in the related entity.
+		/// </summary>
+		ToManyOwning,
 	}
 }
