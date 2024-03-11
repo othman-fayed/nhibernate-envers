@@ -13,15 +13,6 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 	[Serializable]
 	public sealed class MiddleIdData
 	{
-		public MiddleIdData(AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, string prefix,
-							string entityName, bool audited)
-		{
-			OriginalMapper = mappingData.IdMapper;
-			PrefixedMapper = mappingData.IdMapper.PrefixMappedProperties(prefix);
-			EntityName = entityName;
-			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
-		}
-
 		public MiddleIdData(AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, Property mappedByProperty, string entityName, bool audited)
 		{
 			OriginalMapper = mappingData.IdMapper;
@@ -33,11 +24,20 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 			{
 				var singleIdMapper = mappingData.IdMapper as SingleIdMapper;
 				PrefixedMapper = singleIdMapper.SetName("LegOrSectorID");	// HACK
-
 			}
 			EntityName = entityName;
 			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
 		}
+
+		public MiddleIdData(AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, string prefix,
+							string entityName, bool audited)
+		{
+			OriginalMapper = mappingData.IdMapper;
+			PrefixedMapper = mappingData.IdMapper.PrefixMappedProperties(prefix);
+			EntityName = entityName;
+			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
+		}
+
 
 		public IIdMapper OriginalMapper { get; }
 		public IIdMapper PrefixedMapper { get; }

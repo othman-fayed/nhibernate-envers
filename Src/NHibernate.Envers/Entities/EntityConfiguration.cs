@@ -55,6 +55,16 @@ namespace NHibernate.Envers.Entities
 					fakeBidirectionalRelationIndexMapper, true));
 		}
 
+		public void AddToManyOwningRelation(string fromPropertyName, string mappedByPropertyName, string toEntityName,
+											   IIdMapper idMapper, IPropertyMapper fakeBidirectionalRelationMapper,
+											   IPropertyMapper fakeBidirectionalRelationIndexMapper, RelationType relationType,
+												bool indexed)
+		{
+			relations.Add(fromPropertyName, RelationDescription.ToMany(fromPropertyName, relationType,
+					toEntityName, mappedByPropertyName, idMapper, fakeBidirectionalRelationMapper,
+					fakeBidirectionalRelationIndexMapper, true, indexed));
+		}
+
 		public void AddToManyMiddleRelation(string fromPropertyName, string toEntityName)
 		{
 			relations.Add(fromPropertyName, RelationDescription.ToMany(fromPropertyName, RelationType.ToManyMiddle,

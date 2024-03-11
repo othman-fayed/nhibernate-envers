@@ -5,22 +5,23 @@ using NHibernate.Envers.Entities.Mapper.Id;
 namespace NHibernate.Envers.Entities
 {
 	[Serializable]
-	public class RelationDescription 
+	public class RelationDescription
 	{
 		public static RelationDescription ToOne(string fromPropertyName, RelationType relationType, string toEntityName,
-		                    string mappedByPropertyName, IIdMapper idMapper,
-		                    IPropertyMapper fakeBidirectionalRelationMapper,
-		                    IPropertyMapper fakeBidirectionalRelationIndexMapper, bool insertable, bool ignoreNotFound)
+							string mappedByPropertyName, IIdMapper idMapper,
+							IPropertyMapper fakeBidirectionalRelationMapper,
+							IPropertyMapper fakeBidirectionalRelationIndexMapper, bool insertable, bool ignoreNotFound)
 		{
 			return new RelationDescription(fromPropertyName, relationType, toEntityName, mappedByPropertyName, idMapper,
-			                               fakeBidirectionalRelationMapper, fakeBidirectionalRelationIndexMapper, insertable,
-			                               ignoreNotFound);
+										   fakeBidirectionalRelationMapper, fakeBidirectionalRelationIndexMapper, insertable,
+										   ignoreNotFound, false);
 		}
 
 		public static RelationDescription ToMany(string fromPropertyName, RelationType relationType, string toEntityName,
-		                                         string mappedByPropertyName, IIdMapper idMapper,
-		                                         IPropertyMapper fakeBidirectionalRelationMapper,
-		                                         IPropertyMapper fakeBidirectionalRelationIndexMapper, bool insertable)
+												 string mappedByPropertyName, IIdMapper idMapper,
+												 IPropertyMapper fakeBidirectionalRelationMapper,
+												 IPropertyMapper fakeBidirectionalRelationIndexMapper, bool insertable,
+												 bool indexed = false)
 		{
 			// Envers populates collections by executing dedicated queries. Special handling of
 			// @NotFound(action = NotFoundAction.IGNORE) can be omitted in such case as exceptions
@@ -28,13 +29,13 @@ namespace NHibernate.Envers.Entities
 			// Therefore assigning false to ignoreNotFound.
 			return new RelationDescription(fromPropertyName, relationType, toEntityName, mappedByPropertyName, idMapper,
 															 fakeBidirectionalRelationMapper, fakeBidirectionalRelationIndexMapper, insertable,
-															 false);
+															 false, indexed);
 		}
 
 		private RelationDescription(string fromPropertyName, RelationType relationType, string toEntityName,
 						   string mappedByPropertyName, IIdMapper idMapper,
 						   IPropertyMapper fakeBidirectionalRelationMapper,
-						   IPropertyMapper fakeBidirectionalRelationIndexMapper, bool insertable, bool ignoreNotFound)
+						   IPropertyMapper fakeBidirectionalRelationIndexMapper, bool insertable, bool ignoreNotFound, bool isIndexed)
 		{
 			FromPropertyName = fromPropertyName;
 			RelationType = relationType;
@@ -45,6 +46,7 @@ namespace NHibernate.Envers.Entities
 			FakeBidirectionalRelationIndexMapper = fakeBidirectionalRelationIndexMapper;
 			Insertable = insertable;
 			IsIgnoreNotFound = ignoreNotFound;
+			IsIndexed = isIndexed;
 
 			Bidirectional = false;
 		}
@@ -58,6 +60,7 @@ namespace NHibernate.Envers.Entities
 		public IPropertyMapper FakeBidirectionalRelationIndexMapper { get; }
 		public bool Insertable { get; }
 		public bool IsIgnoreNotFound { get; }
+		public bool IsIndexed { get; }
 		public bool Bidirectional { get; set; }
 	}
 }
