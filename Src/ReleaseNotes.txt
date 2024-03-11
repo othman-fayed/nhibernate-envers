@@ -1,3 +1,28 @@
+=== v5.5.1 (v 5.5.1.0), 2024-02-07, NH 5.5.0 ===
+
+** New Feature
+* #50 Async support
+
+** Tasks
+* #51 Run tests on MySQL 8 with MySQL8InnoDBDialect
+
+
+
+=== v5.5.0 (v 5.5.0.0), 2024-01-04, NH 5.5.0 ===
+
+
+
+=== v5.4.0 (v 5.4.0.0), 2022-11-23, NH 5.4.0 ===
+
+
+
+=== v5.3.3 (v 5.3.3.0), 2022-05-24, NH 5.3.0 ===
+
+** Bug
+* #43 Field marked as Generated.Insert not being audited
+
+
+
 === v5.3.2 (v 5.3.2.0), 2021-09-28, NH 5.3.0 ===
 
 ** Bug

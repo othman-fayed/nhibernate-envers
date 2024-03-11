@@ -17,15 +17,14 @@ set /p Version=Please enter nuget version number, eg 1.2.0:
  
 dotnet msbuild default.msbuild /t:BuildRelease
 
+git status --porcelain |findstr . && echo "Repo contains unexpected modifications. Check that before publishing package!" && exit -1
+
 echo -------------------------------
 echo.
 echo Created a new nuget package with version %Version% to output folder.
 echo Assembly versions set to %AssemblyFileVersion%.
-echo Created html docs to output folder
 echo.
 echo Remember to...
-echo * Tag current changeset with version %Version%
-echo * Push changes (tag) to server repo
 echo * Push nuget package to nuget server (and symbol server)
 echo * (Update version number on docs)
 echo * (Push new docs to docs repo)

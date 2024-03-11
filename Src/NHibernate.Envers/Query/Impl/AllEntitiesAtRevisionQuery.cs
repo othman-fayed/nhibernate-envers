@@ -8,7 +8,7 @@ using NHibernate.Envers.Reader;
 
 namespace NHibernate.Envers.Query.Impl
 {
-	public class AllEntitiesAtRevisionQuery<TEntity> : AbstractRevisionsQuery<TEntity> where TEntity : class
+	public partial class AllEntitiesAtRevisionQuery<TEntity> : AbstractRevisionsQuery<TEntity> where TEntity : class
 	{
 		private readonly long _revision;
 
@@ -58,7 +58,8 @@ namespace NHibernate.Envers.Query.Impl
 			AddCriterions();
 
 			// the result of BuildAndExecuteQuery is always the name-value pair of EntityMode.Map
-			return from versionsEntity in BuildAndExecuteQuery<IDictionary>()
+			var result = BuildAndExecuteQuery<IDictionary>();
+			return from versionsEntity in result
 						 select (TEntity)EntityInstantiator.CreateInstanceFromVersionsEntity(EntityName, versionsEntity, _revision);
 		}
 

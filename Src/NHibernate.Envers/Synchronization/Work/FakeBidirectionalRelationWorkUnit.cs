@@ -9,7 +9,7 @@ namespace NHibernate.Envers.Synchronization.Work
 	/// A work unit that handles "fake" bidirectional one-to-many relations (mapped with {@code @OneToMany+@JoinColumn} and
 	/// {@code @ManyToOne+@Column(insertable=false, updatable=false)}.
 	/// </summary>
-	public class FakeBidirectionalRelationWorkUnit: AbstractAuditWorkUnit
+	public class FakeBidirectionalRelationWorkUnit : AbstractAuditWorkUnit
 	{
 		private readonly IDictionary<string, FakeRelationChange> fakeRelationChanges;
 
@@ -31,8 +31,8 @@ namespace NHibernate.Envers.Synchronization.Work
 												 string referencingPropertyName, object owningEntity,
 												 RelationDescription rd, RevisionType revisionType,
 												 object index,
-												 IAuditWorkUnit nestedWorkUnit) 
-			:base(sessionImplementor, entityName, verCfg, id, revisionType)
+												 IAuditWorkUnit nestedWorkUnit)
+			: base(sessionImplementor, entityName, verCfg, id, revisionType)
 		{
 			NestedWorkUnit = nestedWorkUnit;
 
@@ -76,7 +76,7 @@ namespace NHibernate.Envers.Synchronization.Work
 			var nestedData = new Dictionary<string, object>(NestedWorkUnit.GenerateData(revisionData));
 
 			// Now adding data for all fake relations.
-			foreach (var fakeRelationChange in fakeRelationChanges.Values) 
+			foreach (var fakeRelationChange in fakeRelationChanges.Values)
 			{
 				fakeRelationChange.GenerateData(SessionImplementor, nestedData);
 			}
@@ -114,8 +114,8 @@ namespace NHibernate.Envers.Synchronization.Work
 			var mergedFakeRelationChanges = new Dictionary<string, FakeRelationChange>();
 			var allPropertyNames = new HashSet<string>(fakeRelationChanges.Keys);
 			allPropertyNames.UnionWith(secondFakeRelationChanges.Keys);
-			
-			foreach (var propertyName in allPropertyNames) 
+
+			foreach (var propertyName in allPropertyNames)
 			{
 				mergedFakeRelationChanges.Add(propertyName,
 						FakeRelationChange.Merge(
@@ -132,7 +132,7 @@ namespace NHibernate.Envers.Synchronization.Work
 		}
 
 		public static IAuditWorkUnit Merge(FakeBidirectionalRelationWorkUnit frwu, IAuditWorkUnit nestedFirst,
-										IAuditWorkUnit nestedSecond) 
+										IAuditWorkUnit nestedSecond)
 		{
 			var nestedMerged = nestedSecond.Dispatch(nestedFirst);
 
@@ -143,7 +143,7 @@ namespace NHibernate.Envers.Synchronization.Work
 		/// <summary>
 		/// Describes a change to a single fake bidirectional relation.
 		/// </summary>
-		private class FakeRelationChange 
+		private class FakeRelationChange
 		{
 			private readonly object owningEntity;
 			private readonly RelationDescription rd;
@@ -163,20 +163,27 @@ namespace NHibernate.Envers.Synchronization.Work
 			{
 				// If the revision type is "DEL", it means that the object is removed from the collection. Then the
 				// new owner will in fact be null.
-				rd.FakeBidirectionalRelationMapper.MapToMapFromEntity(sessionImplementor, data,
-						revisionType == RevisionType.Deleted ? null : owningEntity, null);
-				rd.FakeBidirectionalRelationMapper.MapModifiedFlagsToMapFromEntity(sessionImplementor, 
-																										data,
-				                                                                  revisionType == RevisionType.Deleted ? null : owningEntity, 
-																										null);
+				if (rd.FakeBidirectionalRelationMapper != null)
+				{
+					// Oz - added null check
+					rd.FakeBidirectionalRelationMapper.MapToMapFromEntity(sessionImplementor, data,
+							revisionType == RevisionType.Deleted ? null : owningEntity, null);
+
+					rd.FakeBidirectionalRelationMapper.MapModifiedFlagsToMapFromEntity(
+						sessionImplementor,
+						data,
+						revisionType == RevisionType.Deleted ? null : owningEntity,
+						null);
+				}
 
 				// Also mapping the index, if the collection is indexed.
-				if (rd.FakeBidirectionalRelationIndexMapper != null) {
+				if (rd.FakeBidirectionalRelationIndexMapper != null)
+				{
 					rd.FakeBidirectionalRelationIndexMapper.MapToMapFromEntity(sessionImplementor, data,
 							revisionType == RevisionType.Deleted ? null : index, null);
-					rd.FakeBidirectionalRelationIndexMapper.MapModifiedFlagsToMapFromEntity(sessionImplementor, 
+					rd.FakeBidirectionalRelationIndexMapper.MapModifiedFlagsToMapFromEntity(sessionImplementor,
 																													data,
-					                                                                        revisionType == RevisionType.Deleted ? null : index, 
+																							revisionType == RevisionType.Deleted ? null : index,
 																													null);
 				}
 			}
@@ -193,7 +200,7 @@ namespace NHibernate.Envers.Synchronization.Work
 				 * - ADD, DEL - return ADD (points to new owner)
 				 * - ADD, ADD - return second (points to newer owner)
 				 */
-				if (first.revisionType == RevisionType.Deleted || second.revisionType == RevisionType.Added) 
+				if (first.revisionType == RevisionType.Deleted || second.revisionType == RevisionType.Added)
 				{
 					return second;
 				}

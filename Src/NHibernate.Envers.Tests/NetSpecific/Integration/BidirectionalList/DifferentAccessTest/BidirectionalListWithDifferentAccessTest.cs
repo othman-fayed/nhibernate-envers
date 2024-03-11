@@ -1,9 +1,10 @@
 using NUnit.Framework;
 using SharpTestsEx;
+using System.Linq;
 
 namespace NHibernate.Envers.Tests.NetSpecific.Integration.BidirectionalList.DifferentAccessTest
 {
-	public class BidirectionalListWithDifferentAccessTest : TestBase
+	public partial class BidirectionalListWithDifferentAccessTest : TestBase
 	{
 		private int parent_id;
 		private int child1_id;
@@ -16,18 +17,18 @@ namespace NHibernate.Envers.Tests.NetSpecific.Integration.BidirectionalList.Diff
 		protected override void Initialize()
 		{
 			var parent = new Parent();
-			var child1 = new Child {Parent = parent};
+			var child1 = new Child { Parent = parent };
 			var child2 = new Child { Parent = parent };
-			using(var tx = Session.BeginTransaction())
+			using (var tx = Session.BeginTransaction())
 			{
-				parent_id = (int) Session.Save(parent);
+				parent_id = (int)Session.Save(parent);
 				parent.Children.Add(child1);
 				parent.Children.Add(child2);
 				child1_id = (int)Session.Save(child1);
 				child2_id = (int)Session.Save(child2);
 				tx.Commit();
 			}
-			using(var tx =Session.BeginTransaction())
+			using (var tx = Session.BeginTransaction())
 			{
 				parent.Children.RemoveAt(0);
 				parent.Children.Add(child1);
@@ -46,8 +47,8 @@ namespace NHibernate.Envers.Tests.NetSpecific.Integration.BidirectionalList.Diff
 		[Test]
 		public void VerifyHistoryOfParent1()
 		{
-			var child1 = new Child {Id = child1_id};
-			var child2 = new Child {Id = child2_id};
+			var child1 = new Child { Id = child1_id };
+			var child2 = new Child { Id = child2_id };
 
 			var ver1 = AuditReader().Find<Parent>(parent_id, 1);
 			ver1.Children[0].Should().Be.EqualTo(child1);
@@ -63,6 +64,13 @@ namespace NHibernate.Envers.Tests.NetSpecific.Integration.BidirectionalList.Diff
 			var ver1 = AuditReader().Find<Parent>(parent_id, 2);
 			ver1.Children[1].Should().Be.EqualTo(child1);
 			ver1.Children[0].Should().Be.EqualTo(child2);
+		}
+
+		[Test]
+		public void ChildTableShoudHaveParentId()
+		{
+			var childMapping = Cfg.ClassMappings.Single(cm => cm.Table.Name.Equals("Child_AUD"));
+			childMapping.Table.ColumnIterator.Where(x => x.Name.Equals("Parent")).Should().Have.Count.EqualTo(1);
 		}
 	}
 }

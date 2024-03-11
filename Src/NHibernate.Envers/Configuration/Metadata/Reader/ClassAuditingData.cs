@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using NHibernate.Envers.Configuration.Attributes;
 
 namespace NHibernate.Envers.Configuration.Metadata.Reader
 {
-	public class ClassAuditingData : IAuditedPropertiesHolder 
+	public class ClassAuditingData : IAuditedPropertiesHolder
 	{
 		private readonly IDictionary<string, PropertyAuditingData> _properties;
 
@@ -46,14 +47,19 @@ namespace NHibernate.Envers.Configuration.Metadata.Reader
 
 		public IEnumerable<string> PropertyNames => _properties.Keys;
 
-		public void SetDefaultAudited(bool defaultAudited) 
+		public void SetDefaultAudited(bool defaultAudited)
 		{
 			_defaultAudited = defaultAudited;
 		}
 
-		public bool IsAudited() 
+		public bool IsAudited()
 		{
 			return _defaultAudited || _properties.Count > 0;
+		}
+
+		public IEnumerable<PropertyAuditingData> SynthenticProperties()
+		{
+			return _properties.Values.Where(x => x.IsSynthetic);
 		}
 	}
 }
