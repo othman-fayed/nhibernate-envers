@@ -108,6 +108,8 @@ namespace NHibernate.Envers.Configuration.Metadata
 				Property mappedByProperty = getMappedByProperty(_propertyValue, false);
 				if (mappedByProperty != null)
 				{
+					// The audit stopped inserting into the middle table
+					// But it didn't insert the parent value into the child table
 					addOneToManyAttachedOwned(mappedByProperty);
 					isAdded = true;
 				}
