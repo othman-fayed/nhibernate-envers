@@ -113,5 +113,10 @@ namespace NHibernate.Envers.Entities.Mapper
 		{
 			main.Add(propertyData);
 		}
+
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

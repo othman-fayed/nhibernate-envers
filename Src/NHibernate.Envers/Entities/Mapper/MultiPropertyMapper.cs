@@ -206,5 +206,10 @@ namespace NHibernate.Envers.Entities.Mapper
 			var pair = mapperAndDelegatePropertyName(referencingPropertyName);
 			return pair?.Item1.MapCollectionChanges(session, pair.Item2, newColl, oldColl, id);
 		}
+
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

@@ -123,5 +123,10 @@ namespace NHibernate.Envers.Entities.Mapper
 		{
 			return _delegate.MapCollectionChanges(session, referencingPropertyName, newColl, oldColl, id);
 		}
+
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

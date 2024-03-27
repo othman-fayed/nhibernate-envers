@@ -223,5 +223,10 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 				GetInitializor(verCfg, versionsReader, primaryKey, revision, data[verCfg.AuditEntCfg.RevisionTypePropName].Equals(RevisionType.Deleted)));
 			setter.Set(obj, coll);
 		}
+
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

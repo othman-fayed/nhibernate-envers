@@ -139,7 +139,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 			//var referencedEntityName = propertyValue.ReferencedEntityName;
 
 			// Generating the id mapper for the relation
-			//var relMapper = propertyRefMapping.PrefixMappedProperties(lastPropertyPrefix);
+			var relMapper = propertyRefMapping.PrefixMappedProperties(lastPropertyPrefix);
 
 			var propertyData = propertyAuditingData.GetPropertyData();
 			//if (relMapper is SingleIdMapper singleIdMapper)
@@ -169,7 +169,8 @@ namespace NHibernate.Envers.Configuration.Metadata
 					referencePropertyName,
 					referencedEntityName,
 					//ownedIdMapping,
-					propertyRefMapping, //relMapper,
+					//propertyRefMapping, 
+					relMapper,
 					insertable,
 					MappingTools.IgnoreNotFound(value)
 					);
@@ -194,34 +195,43 @@ namespace NHibernate.Envers.Configuration.Metadata
 
 			// Adding an element to the mapping corresponding to the references entity id's
 			//var properties = new XElement(null!);
-			////var properties = new XElement(idMapping.XmlRelationMapping);
-			////var properties = new XElement(propertyRefMapping.XmlRelationMapping);
-			//properties.Add(new XAttribute("name", propertyAuditingData.Name));
 
-			//MetadataTools.PrefixNamesInPropertyElement(properties, lastPropertyPrefix,
-			//			MetadataTools.GetColumnNameEnumerator(value.ColumnIterator),
-			//			false, insertable, propertyAuditingData.AccessType);
+			var propertyMap = ownedIdMapping.XmlMapping.Parent.Elements().FirstOrDefault(f => f.Name.LocalName == "property");
 
-			//// Extracting related id properties from properties tag
-			//var firstJoin = firstJoinElement(parent);
-			//foreach (var element in properties.Elements())
-			//{
-			//	if (firstJoin == null)
-			//	{
-			//		parent.Add(element);
-			//	}
-			//	else
-			//	{
-			//		firstJoin.AddBeforeSelf(element);
-			//	}
-			//}
+			var properties = new XElement(ownedIdMapping.XmlRelationMapping);
+			//var properties = new XElement(propertyRefMapping.XmlRelationMapping);
+			properties.Add(new XAttribute("name", propertyAuditingData.Name));
+
+			MetadataTools.PrefixNamesInPropertyElement(properties, lastPropertyPrefix,
+						MetadataTools.GetColumnNameEnumerator(value.ColumnIterator),
+						false, insertable, propertyAuditingData.AccessType);
+
+			// Extracting related id properties from properties tag
+			var firstJoin = firstJoinElement(parent);
+			foreach (var element in properties.Elements())
+			{
+				if (firstJoin == null)
+				{
+					parent.Add(element);
+				}
+				else
+				{
+					firstJoin.AddBeforeSelf(element);
+				}
+			}
 
 			// Adding mapper for the id
 			//var propertyData = propertyAuditingData.GetPropertyData();
 
 			//mapper.AddComposite(propertyData, new ToOneIdMapper(null, propertyData, referencedEntityName, nonInsertableFake));
 
-			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(propertyRefMapping, propertyData, referencedEntityName, referencePropertyName, nonInsertableFake));
+			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(
+				relMapper,
+				//propertyRefMapping,
+				propertyData, 
+				referencedEntityName, 
+				referencePropertyName, 
+				nonInsertableFake));
 			//mapper.AddComposite(propertyData, new OneToOneNotOwningMapper(entityName, referencedEntityName, owningReferencePropertyName, propertyData));
 		}
 

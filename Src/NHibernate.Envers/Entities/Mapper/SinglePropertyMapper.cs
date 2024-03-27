@@ -93,5 +93,10 @@ namespace NHibernate.Envers.Entities.Mapper
 		public void MapModifiedFlagsToMapForCollectionChange(string collectionPropertyName, IDictionary<string, object> data)
 		{
 		}
+
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			return new SinglePropertyMapper(new PropertyData(prefix + _propertyData.Name, _propertyData));
+		}
 	}
 }
