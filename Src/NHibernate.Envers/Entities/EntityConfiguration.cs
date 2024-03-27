@@ -39,6 +39,18 @@ namespace NHibernate.Envers.Entities
 					toEntityName, null, idMapper, null, null, insertable, ignoreNotFound));
 		}
 
+		public void AddToOneNotOwningRelation(
+			string fromPropertyName,
+			string mappedByPropertyName,
+			string toEntityName,
+			IPropertyMapper propertyMapper,
+			bool insertable,
+			bool ignoreNotFound)
+		{
+			relations.Add(fromPropertyName, RelationDescription.ToOne(fromPropertyName, RelationType.ToOne,
+					toEntityName, mappedByPropertyName, null, propertyMapper, null, insertable, ignoreNotFound));
+		}
+
 		public void AddToOneNotOwningRelation(string fromPropertyName, string mappedByPropertyName, string toEntityName,
 											  IIdMapper idMapper, bool ignoreNotFound)
 		{

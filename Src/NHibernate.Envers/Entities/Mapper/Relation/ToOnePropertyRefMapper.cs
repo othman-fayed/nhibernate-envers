@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NHibernate.Engine;
 using NHibernate.Envers.Configuration;
+using NHibernate.Envers.Entities.Mapper.Id;
 using NHibernate.Envers.Reader;
 using NHibernate.Envers.Tools;
 using NHibernate.Envers.Tools.Query;
@@ -14,11 +15,13 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 	[Serializable]
 	public partial class ToOnePropertyRefMapper : AbstractToOneMapper
 	{
+		private readonly IPropertyMapper _propertyRefMapping;
 		private readonly string _referencedEntityName;
 		private readonly bool _nonInsertableFake;
 		private readonly string _referencedPropertyName;
 
 		public ToOnePropertyRefMapper(
+							IPropertyMapper propertyRefMapping,
 							PropertyData propertyData,
 							string referencedEntityName,
 							string referencedPropertyName,
@@ -26,26 +29,33 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 			)
 			: base(propertyData)
 		{
+			_propertyRefMapping = propertyRefMapping;
 			_referencedEntityName = referencedEntityName;
 			_nonInsertableFake = nonInsertableFake;
 			_referencedPropertyName = referencedPropertyName;
 		}
-
+		
 		public override bool MapToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
 		{
-			var newData = new Dictionary<string, object>();
+			//var newData = new Dictionary<string, object>();
 
 			// If this property is originally non-insertable, but made insertable because it is in a many-to-one "fake"
 			// bi-directional relation, we always store the "old", unchaged data, to prevent storing changes made
 			// to this field. It is the responsibility of the collection to properly update it if it really changed.
 			//_delegat.MapToMapFromEntity(newData, _nonInsertableFake ? oldObj : newObj);
 
-			foreach (var entry in newData)
-			{
-				data[entry.Key] = entry.Value;
-			}
+			//foreach (var entry in newData)
+			//{
+			//	data[entry.Key] = entry.Value;
+			//}
 
-			return checkModified(session, newObj, oldObj);
+			//return checkModified(session, newObj, oldObj);
+
+			return _propertyRefMapping.MapToMapFromEntity(
+				session,
+				data,
+				newObj, 
+				_nonInsertableFake ? oldObj : newObj);
 		}
 
 		public override void MapModifiedFlagsToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
@@ -71,6 +81,14 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 
 		protected override void NullSafeMapToEntityFromMap(AuditConfiguration verCfg, object obj, IDictionary data, object primaryKey, IAuditReaderImplementor versionsReader, long revision)
 		{
+			_propertyRefMapping.MapToEntityFromMap(
+				verCfg,
+				obj,
+				data,
+				primaryKey,
+				versionsReader,
+				revision
+				);
 			//var entityId = _delegat.MapToIdFromMap(data);
 			object value = null;
 			//if (entityId != null)

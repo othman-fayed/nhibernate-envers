@@ -1,6 +1,8 @@
-﻿using System.Xml.Linq;
+﻿using System.Linq;
+using System.Xml.Linq;
 using NHibernate.Envers.Configuration.Metadata.Reader;
 using NHibernate.Envers.Entities.Mapper;
+using NHibernate.Envers.Entities.Mapper.Id;
 using NHibernate.Envers.Entities.Mapper.Relation;
 using NHibernate.Envers.Tools;
 using NHibernate.Mapping;
@@ -92,7 +94,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 		/// <param name="entityName"></param>
 		/// <param name="insertable"></param>
 		/// <exception cref="MappingException"></exception>
-		public void AddToOneNotOwning(
+		public void AddToOnePropertyRef(
 			XElement parent,
 			PropertyAuditingData propertyAuditingData,
 			IValue value,
@@ -101,9 +103,19 @@ namespace NHibernate.Envers.Configuration.Metadata
 			bool insertable)
 		{
 			var propertyValue = (ToOne)value;
-			var owningReferencePropertyName = propertyValue.ReferencedPropertyName; // mappedBy
-			var configuration = _mainGenerator.EntitiesConfigurations[entityName];
+			var referencedEntityName = ((ToOne)value).ReferencedEntityName;
+			var referencePropertyName = propertyValue.ReferencedPropertyName; // mappedBy
+
+			//var idMapping = _mainGenerator.GetReferencedIdMappingData(entityName, referencedEntityName, propertyAuditingData, true);
+			var configuration = _mainGenerator.EntitiesConfigurations[referencedEntityName];
 			if (configuration == null)
+			{
+				throw new MappingException("An audited relation to a non-audited entity " + referencedEntityName + "!");
+			}
+
+			var relationDescription = configuration.GetRelationDescription(referencePropertyName);
+			var key = configuration.PropertyMapper.Properties.Keys.SingleOrDefault(f => f.Name == referencePropertyName);
+			if (key == null)
 			{
 				throw new MappingException("An audited relation to a non-audited entity " + entityName + "!");
 			}
@@ -115,16 +127,52 @@ namespace NHibernate.Envers.Configuration.Metadata
 				throw new MappingException("An audited relation to a non-audited entity " + entityName + "!");
 			}
 
-			var lastPropertyPrefix = MappingTools.CreateToOneRelationPrefix(owningReferencePropertyName);
-			var referencedEntityName = propertyValue.ReferencedEntityName;
+			var propertyRefMapping = configuration.PropertyMapper.Properties[key];
+
+			if (propertyRefMapping == null)
+			{
+				throw new MappingException("An audited relation to a non-audited entity " + entityName + "!");
+			}
+
+			var lastPropertyPrefix = MappingTools.CreateToOneRelationPrefix(propertyAuditingData.Name);
+			//var lastPropertyPrefix = MappingTools.CreateToOneRelationPrefix(referencePropertyName);
+			//var referencedEntityName = propertyValue.ReferencedEntityName;
 
 			// Generating the id mapper for the relation
-			var ownedIdMapper = ownedIdMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
+			//var relMapper = propertyRefMapping.PrefixMappedProperties(lastPropertyPrefix);
+
+			var propertyData = propertyAuditingData.GetPropertyData();
+			//if (relMapper is SingleIdMapper singleIdMapper)
+			//{
+			//	relMapper = new SingleIdMapper(new Entities.PropertyData(
+			//		propertyData.Name,
+			//		referencePropertyName,
+			//		propertyData.AccessType,
+			//		propertyData.UsingModifiedFlag,
+			//		propertyData.ModifiedFlagPropertyName
+			//		));
+			//}
+
+			//var ownedIdMapper = propertyRefMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
 
 			// Storing information about this relation
+			//_mainGenerator.EntitiesConfigurations[entityName].AddToManyNotOwningRelation(
+			//		propertyAuditingData.Name,
+			//		referencePropertyName,
+			//		referencedEntityName,
+			//		ownedIdMapping.IdMapper,
+			//		propertyRefMapping, //relMapper,
+			//		null
+			//		);
 			_mainGenerator.EntitiesConfigurations[entityName].AddToOneNotOwningRelation(
-					propertyAuditingData.Name, owningReferencePropertyName,
-					referencedEntityName, ownedIdMapper, MappingTools.IgnoreNotFound(value));
+					propertyAuditingData.Name,
+					referencePropertyName,
+					referencedEntityName,
+					//ownedIdMapping,
+					propertyRefMapping, //relMapper,
+					insertable,
+					MappingTools.IgnoreNotFound(value)
+					);
 
 			// If the property isn't insertable, checking if this is not a "fake" bidirectional many-to-one relationship,
 			// that is, when the one side owns the relation (and is a collection), and the many side is non insertable.
@@ -144,9 +192,36 @@ namespace NHibernate.Envers.Configuration.Metadata
 				nonInsertableFake = false;
 			}
 
+			// Adding an element to the mapping corresponding to the references entity id's
+			//var properties = new XElement(null!);
+			////var properties = new XElement(idMapping.XmlRelationMapping);
+			////var properties = new XElement(propertyRefMapping.XmlRelationMapping);
+			//properties.Add(new XAttribute("name", propertyAuditingData.Name));
+
+			//MetadataTools.PrefixNamesInPropertyElement(properties, lastPropertyPrefix,
+			//			MetadataTools.GetColumnNameEnumerator(value.ColumnIterator),
+			//			false, insertable, propertyAuditingData.AccessType);
+
+			//// Extracting related id properties from properties tag
+			//var firstJoin = firstJoinElement(parent);
+			//foreach (var element in properties.Elements())
+			//{
+			//	if (firstJoin == null)
+			//	{
+			//		parent.Add(element);
+			//	}
+			//	else
+			//	{
+			//		firstJoin.AddBeforeSelf(element);
+			//	}
+			//}
+
 			// Adding mapper for the id
-			var propertyData = propertyAuditingData.GetPropertyData();
-			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(propertyData, referencedEntityName, owningReferencePropertyName, nonInsertableFake));
+			//var propertyData = propertyAuditingData.GetPropertyData();
+
+			//mapper.AddComposite(propertyData, new ToOneIdMapper(null, propertyData, referencedEntityName, nonInsertableFake));
+
+			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(propertyRefMapping, propertyData, referencedEntityName, referencePropertyName, nonInsertableFake));
 			//mapper.AddComposite(propertyData, new OneToOneNotOwningMapper(entityName, referencedEntityName, owningReferencePropertyName, propertyData));
 		}
 

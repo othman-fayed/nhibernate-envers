@@ -149,7 +149,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 				var oneToMany = value as ToOne;
 				if (oneToMany.ReferencedPropertyName != null && propertyAuditingData.RelationTargetAuditMode != RelationTargetAuditMode.NotAudited)
 				{
-					toOneRelationMetadataGenerator.AddToOneNotOwning(
+					toOneRelationMetadataGenerator.AddToOnePropertyRef(
 						parent,
 						propertyAuditingData, 
 						value, 
