@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NHibernate.Engine;
 using NHibernate.Envers.Configuration;
+using NHibernate.Envers.Configuration.Metadata.Reader;
 using NHibernate.Envers.Entities.Mapper.Id;
 using NHibernate.Envers.Query;
 using NHibernate.Envers.Reader;
@@ -20,22 +21,25 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 	{
 		private readonly IIdMapper _propertyMapper;
 		private readonly IPropertyMapper _propertyRefMapping;
+		private readonly PropertyData _propertyDataAudit;
 		private readonly string _referencedEntityName;
 		private readonly bool _nonInsertableFake;
 		private readonly string _referencedPropertyName;
 
 		public ToOnePropertyRefMapper(
-							IIdMapper propertyMapper,
-							IPropertyMapper referencedPropertyMapper,
-							PropertyData propertyData,
-							string referencedEntityName,
-							string referencedPropertyName,
-							bool nonInsertableFake
+			IIdMapper propertyMapper,
+			IPropertyMapper referencedPropertyMapper,
+			PropertyData propertyData,
+			PropertyData propertyDataAudit,
+			string referencedEntityName,
+			string referencedPropertyName,
+			bool nonInsertableFake
 			)
 			: base(propertyData)
 		{
 			_propertyMapper = propertyMapper;
 			_propertyRefMapping = referencedPropertyMapper;
+			_propertyDataAudit = propertyDataAudit;
 			_referencedEntityName = referencedEntityName;
 			_nonInsertableFake = nonInsertableFake;
 			_referencedPropertyName = referencedPropertyName;
@@ -95,75 +99,71 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 			IAuditReaderImplementor versionsReader,
 			long revision)
 		{
-			//_propertyRefMapping.MapToEntityFromMap(
-			//	verCfg,
-			//	obj,
-			//	data,
-			//	primaryKey,
-			//	versionsReader,
-			//	revision
-			//	);
-
-			//return versionsReader.CreateQuery().ForEntitiesAtRevision(referencedEntity.EntityClass, revision)
-			//	.Add(AuditEntity.RelatedId(_owningReferencePropertyName).Eq(primaryKey))
-			//	.GetSingleResult();
 			var entityPropertyReference = _propertyMapper.MapToIdFromMap(data);
-			//PropertyData.Name;
 			object value = null;
 			if (entityPropertyReference != null)
 			{
 				//if (!versionsReader.FirstLevelCache.(_referencedEntityName, revision, entityPropertyReference, out value))
 				//{
 				var referencedEntity = GetEntityInfo(verCfg, _referencedEntityName);
-				//var ignoreNotFound = false;
-				//if (!referencedEntity.IsAudited)
-				//{
-				//	var referencingEntityName = verCfg.EntCfg.GetEntityNameForVersionsEntityName((string)data["$type$"]);
-				//	var relation = verCfg.EntCfg.GetRelationDescription(referencingEntityName, PropertyData.Name);
-				//	ignoreNotFound = relation != null && relation.IsIgnoreNotFound;
-				//}
-				//var removed = RevisionType.Deleted.Equals(data[verCfg.AuditEntCfg.RevisionTypePropName]);
+				var ignoreNotFound = false;
+				if (!referencedEntity.IsAudited)
+				{
+					var referencingEntityName = verCfg.EntCfg.GetEntityNameForVersionsEntityName((string)data["$type$"]);
+					var relation = verCfg.EntCfg.GetRelationDescription(referencingEntityName, _propertyDataAudit.Name);
+					ignoreNotFound = relation != null && relation.IsIgnoreNotFound;
+				}
+				var removed = RevisionType.Deleted.Equals(data[verCfg.AuditEntCfg.RevisionTypePropName]);
 
-				//value = ignoreNotFound ?
-				//	ToOneEntityLoader.LoadImmediate(versionsReader, _referencedEntityName, entityPropertyReference, revision, removed, verCfg) :
-				//	ToOneEntityLoader.CreateProxyOrLoadImmediate(versionsReader, _referencedEntityName, entityPropertyReference, revision, removed, verCfg);
-				//}
-
-				value = versionsReader
-					.CreateQuery()
-					.ForEntitiesAtRevision(referencedEntity.EntityClass, revision)
-					.Add(AuditEntity.Property(_referencedPropertyName).Eq(entityPropertyReference))
-					.GetSingleResult();
+				value = ignoreNotFound
+					? ToOneEntityLoader.LoadImmediate(
+						versionsReader,
+						_referencedEntityName,
+						_referencedPropertyName,
+						entityPropertyReference,
+						revision,
+						removed,
+						verCfg)
+					: ToOneEntityLoader.CreateProxyOrLoadImmediate(
+						versionsReader,
+						_referencedEntityName,
+						_referencedPropertyName,
+						entityPropertyReference,
+						revision,
+						removed,
+						verCfg);
 
 				if (value is null)
 				{
+
+					// Retrieve the entity from the audit data
+					//value = versionsReader.Find(referencedEntity.EntityClass, result[0], revision);
 					value = versionsReader
 					.CreateQuery()
 					.ForEntitiesAtRevision(referencedEntity.EntityClass, revision)
 					.Add(AuditEntity.Property(_referencedPropertyName).Eq(entityPropertyReference))
 					.GetSingleResult();
 
-					//if (value is null)
-					//{
+					if (value is null)
+					{
+						var revision1 = versionsReader
+							.CreateQuery()
+							 .ForRevisionsOfEntity(referencedEntity.EntityClass, false, true)
+							 .AddProjection(AuditEntity.RevisionNumber().Max())
+							 .Add(AuditEntity.Property(_referencedPropertyName).Eq(entityPropertyReference))
+							 .Add(AuditEntity.RevisionNumber().Le(revision))
+							 .GetSingleResult();
 
-					//	var revision1 = versionsReader
-					//		.CreateQuery()
-					//	 .ForRevisionsOfEntity(referencedEntity.EntityClass, false, true)
-					//	 .AddProjection(AuditEntity.RevisionNumber().Max())
-					//	 .Add(AuditEntity.Property(_referencedPropertyName).Eq(entityPropertyReference))
-					//	 .Add(AuditEntity.RevisionNumber().Le(revision))
-					//	 .GetSingleResult();
-
-					//	if (revision1 != null)
-					//	{
-					//		var revNo = Convert.ToInt64(revision1);
-					//		value = versionsReader
-					//		.CreateQuery()
-					//		.ForEntitiesAtRevision(referencedEntity.EntityClass, revNo)
-					//		.Add(AuditEntity.Property(_referencedPropertyName).Eq(entityPropertyReference))
-					//		.GetSingleResult();
-					//	}
-					//}
+						if (revision1 != null)
+						{
+							var revNo = Convert.ToInt64(revision1);
+							value = versionsReader
+							.CreateQuery()
+							.ForEntitiesAtRevision(referencedEntity.EntityClass, revNo)
+							.Add(AuditEntity.Property(_referencedPropertyName).Eq(entityPropertyReference))
+							.GetSingleResult();
+						}
+					}
 
 				}
 			}

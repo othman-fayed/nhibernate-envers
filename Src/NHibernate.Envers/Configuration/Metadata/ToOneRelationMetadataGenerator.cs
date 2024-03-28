@@ -135,9 +135,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 			}
 
 			var lastPropertyPrefix = MappingTools.CreateToOneRelationPrefix(propertyAuditingData.Name);
-			//var lastPropertyPrefix = MappingTools.CreateToOneRelationPrefix(referencePropertyName);
-			//var referencedEntityName = propertyValue.ReferencedEntityName;
-
+			
 			// Generating the id mapper for the relation
 			var relIdMapper = ownedIdMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
 
@@ -180,14 +178,6 @@ namespace NHibernate.Envers.Configuration.Metadata
 			//var ownedIdMapper = propertyRefMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
 
 			// Storing information about this relation
-			//_mainGenerator.EntitiesConfigurations[entityName].AddToManyNotOwningRelation(
-			//		propertyAuditingData.Name,
-			//		referencePropertyName,
-			//		referencedEntityName,
-			//		ownedIdMapping.IdMapper,
-			//		propertyRefMapping, //relMapper,
-			//		null
-			//		);
 			_mainGenerator.EntitiesConfigurations[entityName].AddToOneNotOwningRelation(
 					propertyAuditingData.Name,
 					referencePropertyName,
@@ -254,20 +244,15 @@ namespace NHibernate.Envers.Configuration.Metadata
 				}
 			}
 
-			// Adding mapper for the id
-			//var propertyData = propertyAuditingData.GetPropertyData();
-
-			//mapper.AddComposite(propertyData, new ToOneIdMapper(null, propertyData, referencedEntityName, nonInsertableFake));
-
 			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(
 				relIdMapper,
 				relMapper,
 				//propertyRefMapping,
+				propertyAuditingData.GetPropertyData(),
 				propertyData,
 				referencedEntityName,
 				referencePropertyName,
 				nonInsertableFake));
-			//mapper.AddComposite(propertyData, new OneToOneNotOwningMapper(entityName, referencedEntityName, owningReferencePropertyName, propertyData));
 		}
 
 
