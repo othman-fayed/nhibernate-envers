@@ -223,10 +223,10 @@ namespace NHibernate.Envers.Event
 					var toPropertyName = toPropertyNames.First();
 
 					auditProcess.AddWorkUnit(new CollectionChangeWorkUnit(evt.Session,
-																							evt.Session.BestGuessEntityName(relatedObj), 
+																							evt.Session.BestGuessEntityName(relatedObj),
 																							toPropertyName,
-																							VerCfg, 
-																							relatedId, 
+																							VerCfg,
+																							relatedId,
 																							relatedObj));
 				}
 			}
@@ -288,6 +288,8 @@ namespace NHibernate.Envers.Event
 			var verSync = VerCfg.AuditProcessManager.Get(evt.Session);
 			var ownerEntityName = ((AbstractCollectionPersister)collectionEntry.LoadedPersister).OwnerEntityName;
 			var referencingPropertyName = collectionEntry.Role.Substring(ownerEntityName.Length + 1);
+			//var referencingPropertyName = getReferencingPropertyName(collectionEntry, ownerEntityName);	// TODO: owned collection - Oz
+
 
 			// Checking if this is not a "fake" many-to-one bidirectional relation. The relation description may be
 			// null in case of collections of non-entities.
@@ -299,7 +301,7 @@ namespace NHibernate.Envers.Event
 			}
 			else
 			{
-				var workUnit = new PersistentCollectionChangeWorkUnit(evt.Session, entityName, VerCfg, newColl, 
+				var workUnit = new PersistentCollectionChangeWorkUnit(evt.Session, entityName, VerCfg, newColl,
 																collectionEntry, oldColl, evt.AffectedOwnerIdOrNull,
 																referencingPropertyName);
 				verSync.AddWorkUnit(workUnit);
@@ -344,7 +346,11 @@ namespace NHibernate.Envers.Event
 		public virtual void OnPreUpdateCollection(PreCollectionUpdateEvent evt)
 		{
 			var collectionEntry = getCollectionEntry(evt);
-			if (!collectionEntry.LoadedPersister.IsInverse)
+			if (collectionEntry.LoadedPersister.IsInverse)
+			{
+				//onCollectionActionInversed(evt, evt.Collection, collectionEntry.Snapshot, collectionEntry);
+			}
+			else
 			{
 				onCollectionAction(evt, evt.Collection, collectionEntry.Snapshot, collectionEntry);
 			}
@@ -387,7 +393,11 @@ namespace NHibernate.Envers.Event
 		public virtual void OnPostRecreateCollection(PostCollectionRecreateEvent evt)
 		{
 			var collectionEntry = getCollectionEntry(evt);
-			if (!collectionEntry.LoadedPersister.IsInverse)
+			if (collectionEntry.LoadedPersister.IsInverse)
+			{
+				onCollectionActionInversed(evt, evt.Collection, null, collectionEntry);
+			}
+			else
 			{
 				onCollectionAction(evt, evt.Collection, null, collectionEntry);
 			}
@@ -400,7 +410,7 @@ namespace NHibernate.Envers.Event
 
 		private static void checkIfTransactionInProgress(ISessionImplementor session)
 		{
-			if (!session.TransactionInProgress && session.TransactionContext==null)
+			if (!session.TransactionInProgress && session.TransactionContext == null)
 			{
 				// Historical data would not be flushed to audit tables if outside of active transaction
 				// (AuditProcess#doBeforeTransactionCompletion(SessionImplementor) not executed).
@@ -412,13 +422,38 @@ namespace NHibernate.Envers.Event
 		{
 			var entityName = evt.GetAffectedOwnerEntityName();
 			return VerCfg.GlobalCfg.GenerateRevisionsForCollections
-			       && VerCfg.EntCfg.IsVersioned(entityName);
+				   && VerCfg.EntCfg.IsVersioned(entityName);
 		}
 
 		private static object initializeCollection(AbstractCollectionEvent evt)
 		{
 			evt.Collection.ForceInitialization();
 			return evt.Collection.StoredSnapshot;
+		}
+
+		private void onCollectionActionInversed(AbstractCollectionEvent evt,
+							IPersistentCollection newColl,
+							object oldColl,
+							CollectionEntry collectionEntry)
+		{
+			if (shouldGenerateRevision(evt))
+			{
+				var entityName = evt.GetAffectedOwnerEntityName();
+				var ownerEntityName = ((AbstractCollectionPersister)collectionEntry.LoadedPersister).OwnerEntityName;
+				var referencingPropertyName = getReferencingPropertyName(collectionEntry, ownerEntityName);
+
+				var rd = getRelationDescriptionWithInheritedRelations(entityName, referencingPropertyName);
+				if (rd?.RelationType == RelationType.ToManyOwning && rd.IsIndexed)
+				{
+					onCollectionAction(evt, newColl, oldColl, collectionEntry);
+				}
+			}
+		}
+
+		private static string getReferencingPropertyName(CollectionEntry collectionEntry, string ownerEntityName)
+		{
+			//hack - try to make this safer later
+			return collectionEntry.Role.Substring(ownerEntityName.Length + 1);
 		}
 	}
 }

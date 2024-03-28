@@ -16,7 +16,7 @@ namespace NHibernate.Envers.Entities.Mapper
 	{
 		private readonly IDictionary<string, PropertyData> _propertyDatas;
 
-		public MultiPropertyMapper() 
+		public MultiPropertyMapper()
 		{
 			Properties = new Dictionary<PropertyData, IPropertyMapper>();
 			_propertyDatas = new Dictionary<string, PropertyData>();
@@ -24,7 +24,7 @@ namespace NHibernate.Envers.Entities.Mapper
 
 		public IDictionary<PropertyData, IPropertyMapper> Properties { get; }
 
-		public void Add(PropertyData propertyData) 
+		public void Add(PropertyData propertyData)
 		{
 			var single = new SinglePropertyMapper();
 			single.Add(propertyData);
@@ -32,17 +32,17 @@ namespace NHibernate.Envers.Entities.Mapper
 			_propertyDatas.Add(propertyData.Name, propertyData);
 		}
 
-		public ICompositeMapperBuilder AddComponent(PropertyData propertyData, string componentClassName) 
+		public ICompositeMapperBuilder AddComponent(PropertyData propertyData, string componentClassName)
 		{
-			if (Properties.ContainsKey(propertyData)) 
+			if (Properties.ContainsKey(propertyData))
 			{
 				// This is needed for second pass to work properly in the components mapper
-				return (ICompositeMapperBuilder) Properties[propertyData];
+				return (ICompositeMapperBuilder)Properties[propertyData];
 			}
 
 			ICompositeMapperBuilder componentMapperBuilder;
 			//todo: rk - not really reliable I think!
-			if(componentClassName==null)
+			if (componentClassName == null)
 			{
 				componentMapperBuilder = new DynamicComponentPropertyMapper(propertyData);
 			}
@@ -51,12 +51,12 @@ namespace NHibernate.Envers.Entities.Mapper
 				componentMapperBuilder = new ComponentPropertyMapper(propertyData, componentClassName);
 			}
 
-			AddComposite(propertyData, (IPropertyMapper) componentMapperBuilder);
+			AddComposite(propertyData, (IPropertyMapper)componentMapperBuilder);
 
 			return componentMapperBuilder;
 		}
 
-		public void AddComposite(PropertyData propertyData, IPropertyMapper propertyMapper) 
+		public void AddComposite(PropertyData propertyData, IPropertyMapper propertyMapper)
 		{
 			Properties.Add(propertyData, propertyMapper);
 			_propertyDatas.Add(propertyData.Name, propertyData);
@@ -67,15 +67,15 @@ namespace NHibernate.Envers.Entities.Mapper
 			return array?[index];
 		}
 
-		public bool Map(ISessionImplementor session, IDictionary<string, object> data, string[] propertyNames, 
-						object[] newState, object[] oldState) 
+		public bool Map(ISessionImplementor session, IDictionary<string, object> data, string[] propertyNames,
+						object[] newState, object[] oldState)
 		{
 			var ret = false;
-			for (var i=0; i<propertyNames.Length; i++) 
+			for (var i = 0; i < propertyNames.Length; i++)
 			{
 				var propertyName = propertyNames[i];
 
-				if (_propertyDatas.ContainsKey(propertyName)) 
+				if (_propertyDatas.ContainsKey(propertyName))
 				{
 					var propertyMapper = Properties[_propertyDatas[propertyName]];
 					var newObj = getAtIndexOrNull(newState, i);
@@ -88,24 +88,28 @@ namespace NHibernate.Envers.Entities.Mapper
 			return ret;
 		}
 
-		public bool MapToMapFromEntity(ISessionImplementor session, 
+		public bool MapToMapFromEntity(ISessionImplementor session,
 										IDictionary<string, object> data,
-										object newObj, 
+										object newObj,
 										object oldObj)
 		{
 			var ret = false;
-			foreach (var propertyData in Properties.Keys) 
+			foreach (var propertyData in Properties.Keys)
 			{
+				////synthetic properties are not part of the entity model; therefore they should be ignored.
+				//if (propertyData.IsSynthentic)
+				//	continue;
+
 				IGetter getter;
-				if (newObj != null) 
+				if (newObj != null)
 				{
 					getter = ReflectionTools.GetGetter(newObj.GetType(), propertyData);
-				} 
-				else if (oldObj != null) 
+				}
+				else if (oldObj != null)
 				{
 					getter = ReflectionTools.GetGetter(oldObj.GetType(), propertyData);
-				} 
-				else 
+				}
+				else
 				{
 					return false;
 				}
@@ -136,15 +140,15 @@ namespace NHibernate.Envers.Entities.Mapper
 					return;
 				}
 				Properties[propertyData].MapModifiedFlagsToMapFromEntity(session, data,
-				                                                         newObj == null ? null : getter.Get(newObj),
-				                                                         oldObj == null ? null : getter.Get(oldObj));
+																		 newObj == null ? null : getter.Get(newObj),
+																		 oldObj == null ? null : getter.Get(oldObj));
 			}
 		}
 
 		public void MapToEntityFromMap(AuditConfiguration verCfg, object obj, IDictionary data,
-									   object primaryKey, IAuditReaderImplementor versionsReader, long revision) 
+									   object primaryKey, IAuditReaderImplementor versionsReader, long revision)
 		{
-			foreach (var mapper in Properties.Values) 
+			foreach (var mapper in Properties.Values)
 			{
 				mapper.MapToEntityFromMap(verCfg, obj, data, primaryKey, versionsReader, revision);
 			}
@@ -197,7 +201,7 @@ namespace NHibernate.Envers.Entities.Mapper
 			pair?.Item1.MapModifiedFlagsToMapForCollectionChange(pair.Item2, data);
 		}
 
-		public IList<PersistentCollectionChangeData> MapCollectionChanges(ISessionImplementor session, 
+		public IList<PersistentCollectionChangeData> MapCollectionChanges(ISessionImplementor session,
 																		string referencingPropertyName,
 																		IPersistentCollection newColl,
 																		object oldColl,

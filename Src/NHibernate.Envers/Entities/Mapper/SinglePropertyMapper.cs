@@ -13,20 +13,20 @@ using NHibernate.Envers.Tools.Reflection;
 namespace NHibernate.Envers.Entities.Mapper
 {
 	[Serializable]
-	public class SinglePropertyMapper : IPropertyMapper, ISimpleMapperBuilder 
+	public class SinglePropertyMapper : IPropertyMapper, ISimpleMapperBuilder
 	{
 		private PropertyData _propertyData;
 
-		public SinglePropertyMapper(PropertyData propertyData) 
+		public SinglePropertyMapper(PropertyData propertyData)
 		{
 			_propertyData = propertyData;
 		}
 
 		public SinglePropertyMapper() { }
 
-		public void Add(PropertyData propertyData) 
+		public void Add(PropertyData propertyData)
 		{
-			if (_propertyData != null) 
+			if (_propertyData != null)
 			{
 				throw new AuditException("Only one property can be added!");
 			}
@@ -34,10 +34,10 @@ namespace NHibernate.Envers.Entities.Mapper
 			_propertyData = propertyData;
 		}
 
-		public bool MapToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj) 
+		public bool MapToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
 		{
 			data[_propertyData.Name] = newObj;
-			if (bothOldAndNewAreEmptyStrings(session, newObj, oldObj)) 
+			if (bothOldAndNewAreEmptyStrings(session, newObj, oldObj))
 				return false;
 			if (newObj == null)
 			{
@@ -61,9 +61,12 @@ namespace NHibernate.Envers.Entities.Mapper
 		}
 
 		public void MapToEntityFromMap(AuditConfiguration verCfg, object obj, IDictionary data, object primaryKey,
-									   IAuditReaderImplementor versionsReader, long revision) 
+									   IAuditReaderImplementor versionsReader, long revision)
 		{
-			if (data == null || obj == null) 
+
+			// synthetic properties are not part of the entity model; therefore they should be ignored.
+			//if (data == null || obj == null || _propertyData.IsSynthentic)
+			if (data == null || obj == null)
 			{
 				return;
 			}
@@ -77,13 +80,15 @@ namespace NHibernate.Envers.Entities.Mapper
 		public IList<PersistentCollectionChangeData> MapCollectionChanges(ISessionImplementor session, string referencingPropertyName,
 																		 IPersistentCollection newColl,
 																		 object oldColl,
-																		 object id) 
+																		 object id)
 		{
 			return null;
 		}
 
 		public void MapModifiedFlagsToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
 		{
+			// Synthetic properties are not subject to withModifiedFlag analysis
+			//if (_propertyData.UsingModifiedFlag && !_propertyData.IsSynthentic)
 			if (_propertyData.UsingModifiedFlag)
 			{
 				data[_propertyData.ModifiedFlagPropertyName] = !Toolz.ObjectsEqual(newObj, oldObj);

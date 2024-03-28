@@ -48,7 +48,7 @@ namespace NHibernate.Envers.Configuration.Store
 					var refPersistentClass = _nhibernateConfiguration.GetClassMapping(referencedEntity);
 					foreach (var refProperty in refPersistentClass.PropertyClosureIterator)
 					{
-						if(MetadataTools.IsNoneAccess(refProperty.PropertyAccessorName))
+						if (MetadataTools.IsNoneAccess(refProperty.PropertyAccessorName))
 							continue;
 						var attr = createAuditMappedByAttributeIfReferenceImmutable(collectionValue, refProperty);
 						if (attr == null) continue;
@@ -71,18 +71,25 @@ namespace NHibernate.Envers.Configuration.Store
 		private static AuditMappedByAttribute createAuditMappedByAttributeIfReferenceImmutable(Mapping.Collection collectionValue, Property referencedProperty)
 		{
 			AuditMappedByAttribute attr = null;
-		
+
 			//check if bidrectional
 			//TODO: backref check here is wrong! But if it's fixed it will be a big breaking change I guess.. For now, an extra table will be created.
-			if (!referencedProperty.BackRef && isRelation(collectionValue, referencedProperty))
+			if (isRelation(collectionValue, referencedProperty))
 			{
-				attr = new AuditMappedByAttribute {MappedBy = referencedProperty.Name};
-				if (!referencedProperty.IsUpdateable && 
-					!referencedProperty.IsInsertable &&
-					//check that non update/insert properties are not also part of id!
-					!MappingTools.AnyColumnMatches(referencedProperty.ColumnIterator, referencedProperty.PersistentClass.Identifier.ColumnIterator))
+				if (referencedProperty.BackRef)
 				{
-					attr.ForceInsertOverride = true;
+					// Oz - unidirectional
+				}
+				else
+				{
+					attr = new AuditMappedByAttribute { MappedBy = referencedProperty.Name };
+					if (!referencedProperty.IsUpdateable &&
+						!referencedProperty.IsInsertable &&
+						//check that non update/insert properties are not also part of id!
+						!MappingTools.AnyColumnMatches(referencedProperty.ColumnIterator, referencedProperty.PersistentClass.Identifier.ColumnIterator))
+					{
+						attr.ForceInsertOverride = true;
+					}
 				}
 			}
 			return attr;
@@ -100,6 +107,14 @@ namespace NHibernate.Envers.Configuration.Store
 			if (!(collectionValue is IndexedCollection indexValue)) return;
 			foreach (var referencedProperty in referencedProperties)
 			{
+				// TODO: Check if needed to skip middle table - Oz
+				//if (referencedProperty is IndexBackref)
+				//	continue;
+
+				//if (MappingTools.SameColumns(referencedProperty.ColumnIterator, indexValue.Index.ColumnIterator) &&
+				//								   !referencedProperty.IsUpdateable &&
+				//								   !referencedProperty.IsInsertable)
+
 				if (MappingTools.SameColumns(referencedProperty.ColumnIterator, indexValue.Index.ColumnIterator) &&
 												   !referencedProperty.IsUpdateable &&
 												   !referencedProperty.IsInsertable)

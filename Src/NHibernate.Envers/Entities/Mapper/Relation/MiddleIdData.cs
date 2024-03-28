@@ -13,6 +13,22 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 	[Serializable]
 	public sealed class MiddleIdData
 	{
+		public MiddleIdData(AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, Property mappedByProperty, string entityName, bool audited)
+		{
+			OriginalMapper = mappingData.IdMapper;
+			if (mappedByProperty.Type.IsAssociationType)
+			{
+				PrefixedMapper = mappingData.IdMapper.PrefixMappedProperties(mappedByProperty.Name + MappingTools.RelationCharacter);
+			}
+			else
+			{
+				var singleIdMapper = mappingData.IdMapper as SingleIdMapper;
+				PrefixedMapper = singleIdMapper.SetName("LegOrSectorID");	// HACK
+			}
+			EntityName = entityName;
+			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
+		}
+
 		public MiddleIdData(AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, string prefix,
 							string entityName, bool audited)
 		{

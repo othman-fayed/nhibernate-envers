@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
+using Antlr.Runtime.Misc;
 using NHibernate.Envers.Configuration.Metadata.Reader;
 using NHibernate.Envers.Configuration.Store;
 using NHibernate.Envers.Entities;
@@ -96,15 +97,38 @@ namespace NHibernate.Envers.Configuration.Metadata
 			var owningManyToOneWithJoinTableBidirectional = value is ManyToOne && _propertyAuditingData.MappedBy != null;
 			var fakeOneToManyBidirectional = (value is OneToMany) && (_propertyAuditingData.MappedBy != null);
 
-			if (oneToManyAttachedType && (inverseOneToMany || fakeOneToManyBidirectional || owningManyToOneWithJoinTableBidirectional))
+			var fullyOwnedByChild = (value is OneToMany) &&
+				_propertyAuditingData.MappedBy == null &&
+				!_propertyValue.IsInverse;  // TODO: Need to enforce ownership check
+											//var relationType = fullyOwnedByChild ? RelationType.ToManyNotOwning : RelationType.ToManyOwning;	
+
+			var isAdded = false;
+			if (oneToManyAttachedType && fullyOwnedByChild)
 			{
-				// A one-to-many relation mapped using @ManyToOne and @OneToMany(mappedBy="...")
-				addOneToManyAttached(fakeOneToManyBidirectional);
+				Property mappedByProperty = getMappedByProperty(_propertyValue, false);
+				if (mappedByProperty != null)
+				{
+					addOneToManyAttachedOwned(mappedByProperty);
+					isAdded = true;
+				}
+				else
+				{
+					// Not even a backRef exists
+				}
 			}
-			else
+
+			if (!isAdded)
 			{
-				// All other kinds of relations require a middle (join) table.
-				addWithMiddleTable();
+				if (oneToManyAttachedType && (inverseOneToMany || fakeOneToManyBidirectional || owningManyToOneWithJoinTableBidirectional))
+				{
+					// A one-to-many relation mapped using @ManyToOne and @OneToMany(mappedBy="...")
+					addOneToManyAttached(fakeOneToManyBidirectional);
+				}
+				else
+				{
+					// All other kinds of relations require a middle (join) table.
+					addWithMiddleTable();
+				}
 			}
 		}
 
@@ -224,6 +248,98 @@ namespace NHibernate.Envers.Configuration.Metadata
 			_referencingEntityConfiguration.AddToManyNotOwningRelation(_propertyName, mappedBy,
 					_referencedEntityName, referencingIdData.PrefixedMapper, fakeBidirectionalRelationMapper,
 					fakeBidirectionalRelationIndexMapper);
+		}
+
+		/// <summary>
+		/// no need for middle table
+		/// </summary>
+		/// <param name="fakeOneToManyBidirectional"></param>
+		private void addOneToManyAttachedOwned(Property mappedByProperty)
+		{
+			log.Debug("Adding audit mapping for property {0}. {1}" +
+					": one-to-many collection, using a join column on the referenced entity.", _referencingEntityName, _propertyName);
+
+			var indexed = (_propertyValue as IndexedCollection)?.Index != null;
+
+			var mappedBy = mappedByProperty.Name;
+
+			var referencedIdMapping = _mainGenerator.GetReferencedIdMappingData(_referencingEntityName,
+						_referencedEntityName, _propertyAuditingData, false);
+			var referencingIdMapping = _referencingEntityConfiguration.IdMappingData;
+
+			// Generating the id mappers data for the referencing side of the relation.
+			var referencingIdData = createMiddleIdData(referencingIdMapping,
+					mappedBy + "_", _referencingEntityName);
+
+			// And for the referenced side. The prefixed mapper won't be used (as this collection isn't persisted
+			// in a join table, so the prefix value is arbitrary).
+			var referencedIdData = createMiddleIdData(referencedIdMapping,
+					null, _referencedEntityName);
+
+			// Generating the element mapping.
+			var elementComponentData = new MiddleComponentData(
+					new MiddleRelatedComponentMapper(referencedIdData), 0);
+
+			// Generating the index mapping, if an index exists. It can only exists in case a javax.persistence.MapKey
+			// annotation is present on the entity. So the middleEntityXml will be not be used. The queryGeneratorBuilder
+			// will only be checked for nullnes.
+			var indexComponentData = addIndex(null, null);
+
+			// Generating the query generator - it should read directly from the related entity.
+			var queryGenerator = new OneAuditEntityQueryGenerator(_mainGenerator.VerEntCfg,
+					_mainGenerator.GlobalCfg.AuditStrategy, referencingIdData, _referencedEntityName, referencedIdData, isEmbeddableElementType());
+
+			// Creating common mapper data.
+			var commonCollectionMapperData = new CommonCollectionMapperData(
+					_mainGenerator.VerEntCfg, _referencedEntityName,
+					_propertyAuditingData.GetPropertyData(),
+					referencingIdData, queryGenerator);
+
+			IPropertyMapper fakeBidirectionalRelationMapper = null;
+			IPropertyMapper fakeBidirectionalRelationIndexMapper = null;
+
+			// In case of a fake many-to-one bidirectional relation, we have to generate a mapper which maps
+			// the mapped-by property name to the id of the related entity (which is the owner of the collection).
+			var auditMappedBy = _propertyAuditingData.MappedBy;
+
+			// Creating a prefixed relation mapper.
+			var relMapper = referencingIdMapping.IdMapper.PrefixMappedProperties(
+					MappingTools.CreateToOneRelationPrefix(auditMappedBy));
+
+			fakeBidirectionalRelationMapper = new ToOneIdMapper(
+					relMapper,
+					// The mapper will only be used to map from entity to map, so no need to provide other details
+					// when constructing the PropertyData.
+					new PropertyData(auditMappedBy, null, null),
+					_referencedEntityName, false);
+
+			var positionMappedBy = _propertyAuditingData.PositionMappedBy;
+			if (indexed && positionMappedBy == null)
+			{
+				var indexValue = ((IndexedCollection)_propertyValue).Index;
+				positionMappedBy = indexValue.ColumnIterator.Single().Text;
+			}
+
+			// Checking if there's an index defined. If so, adding a mapper for it.
+			if (positionMappedBy != null)
+			{
+				fakeBidirectionalRelationIndexMapper = new SinglePropertyMapper(new PropertyData(positionMappedBy, null, null));
+
+				// Also, overwriting the index component data to properly read the index.
+				indexComponentData = new MiddleComponentData(new MiddleStraightComponentMapper(positionMappedBy), 0);
+			}
+
+
+			// Checking the type of the collection and adding an appropriate mapper.
+			addMapper(commonCollectionMapperData, elementComponentData, indexComponentData);
+
+			//var fullyOwnedByChild = _propertyAuditingData.MappedBy != null && _propertyAuditingData.PositionMappedBy != null;
+			//var relationType = fullyOwnedByChild ? RelationType.ToManyNotOwning : RelationType.ToManyOwning;
+
+			// Storing information about this relation.
+			_referencingEntityConfiguration.AddToManyOwningRelation(_propertyName, mappedBy,
+					_referencedEntityName, referencingIdData.PrefixedMapper, fakeBidirectionalRelationMapper,
+					fakeBidirectionalRelationIndexMapper, /*relationType*/ RelationType.ToManyOwning, indexed);
 		}
 
 		/// <summary>
@@ -690,6 +806,27 @@ namespace NHibernate.Envers.Configuration.Metadata
 		private static string searchMappedBy(PersistentClass referencedClass, Mapping.Collection collectionValue)
 		{
 			return searchMappedByProperty(referencedClass, collectionValue)?.Name;
+		}
+
+		private Property getMappedByProperty(Mapping.Collection collectionValue, bool throwIfNotFound = true)
+		{
+			var referencedClass = _mainGenerator.Cfg.GetClassMapping(MappingTools.ReferencedEntityName(collectionValue.Element));
+			var mappedBy = searchMappedByProperty(referencedClass, collectionValue);
+
+			if (mappedBy == null)
+			{
+				log.Debug("Going to search the mapped by attribute for " + _propertyName + " in superclasses of entity: " + referencedClass.ClassName);
+				var tempClass = referencedClass;
+				while (mappedBy == null && tempClass.Superclass != null)
+				{
+					log.Debug("Searching in superclass: " + tempClass.Superclass.ClassName);
+					mappedBy = searchMappedByProperty(tempClass.Superclass, collectionValue);
+					tempClass = tempClass.Superclass;
+				}
+			}
+			if (mappedBy == null && throwIfNotFound)
+				throw new MappingException("Cannot find the inverse side for " + _propertyName + " in " + _referencingEntityName + "!");
+			return mappedBy;
 		}
 
 		private static Property searchMappedByProperty(PersistentClass referencedClass, Mapping.Collection collectionValue)
