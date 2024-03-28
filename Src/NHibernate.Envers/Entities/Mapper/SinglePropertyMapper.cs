@@ -98,5 +98,17 @@ namespace NHibernate.Envers.Entities.Mapper
 		{
 			return new SinglePropertyMapper(new PropertyData(prefix + _propertyData.Name, _propertyData));
 		}
+
+		internal MultiPropertyMapper ToMultiPropertyMapper(string name = null)
+		{
+			var mapper = new MultiPropertyMapper();
+			mapper.Add(new PropertyData(name ?? _propertyData.Name, _propertyData));
+			return mapper;
+		}
+
+		internal string GetPropertyDataName()
+		{
+			return _propertyData.Name;
+		}
 	}
 }

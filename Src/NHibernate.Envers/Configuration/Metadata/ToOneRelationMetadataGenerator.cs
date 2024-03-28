@@ -139,7 +139,24 @@ namespace NHibernate.Envers.Configuration.Metadata
 			//var referencedEntityName = propertyValue.ReferencedEntityName;
 
 			// Generating the id mapper for the relation
-			var relMapper = propertyRefMapping.PrefixMappedProperties(lastPropertyPrefix);
+			//var relIdMapper = ownedIdMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
+
+			IPropertyMapper relMapper;
+			if (propertyRefMapping is SinglePropertyMapper single)
+			{
+				if(ownedIdMapping.IdMapper is SingleIdMapper single1)
+				{
+					relMapper = single.ToMultiPropertyMapper(lastPropertyPrefix + single1.GetPropertyDataName());
+				}
+				else
+				{
+					relMapper = single.ToMultiPropertyMapper(lastPropertyPrefix + single.GetPropertyDataName());
+				}
+			}
+			else
+			{
+				relMapper = propertyRefMapping.PrefixMappedProperties(lastPropertyPrefix);
+			}
 
 			var propertyData = propertyAuditingData.GetPropertyData();
 			//if (relMapper is SingleIdMapper singleIdMapper)
@@ -196,7 +213,11 @@ namespace NHibernate.Envers.Configuration.Metadata
 			// Adding an element to the mapping corresponding to the references entity id's
 			//var properties = new XElement(null!);
 
-			var propertyMap = ownedIdMapping.XmlMapping.Parent.Elements().FirstOrDefault(f => f.Name.LocalName == "property");
+			var propertyMap = ownedIdMapping
+				.XmlMapping
+				.Parent
+				.Elements()
+				.FirstOrDefault(f => f.Name.LocalName == "property" && f.Attributes().Any(a => a.Name == "name" && a.Value == referencePropertyName));
 
 			var properties = new XElement(ownedIdMapping.XmlRelationMapping);
 			//var properties = new XElement(propertyRefMapping.XmlRelationMapping);
@@ -205,6 +226,12 @@ namespace NHibernate.Envers.Configuration.Metadata
 			MetadataTools.PrefixNamesInPropertyElement(properties, lastPropertyPrefix,
 						MetadataTools.GetColumnNameEnumerator(value.ColumnIterator),
 						false, insertable, propertyAuditingData.AccessType);
+
+			// set mappedBy column to same type as proeprty ref
+			properties
+				.Elements()
+				.First(x => x.Name.LocalName == "property")
+				.SetAttributeValue("type", propertyMap.Attribute("type").Value);
 
 			// Extracting related id properties from properties tag
 			var firstJoin = firstJoinElement(parent);
@@ -228,9 +255,9 @@ namespace NHibernate.Envers.Configuration.Metadata
 			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(
 				relMapper,
 				//propertyRefMapping,
-				propertyData, 
-				referencedEntityName, 
-				referencePropertyName, 
+				propertyData,
+				referencedEntityName,
+				referencePropertyName,
 				nonInsertableFake));
 			//mapper.AddComposite(propertyData, new OneToOneNotOwningMapper(entityName, referencedEntityName, owningReferencePropertyName, propertyData));
 		}

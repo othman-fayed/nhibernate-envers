@@ -9,6 +9,8 @@ using NHibernate.Envers.Entities.Mapper.Id;
 using NHibernate.Envers.Reader;
 using NHibernate.Envers.Tools;
 using NHibernate.Envers.Tools.Query;
+using NHibernate.Envers.Tools.Reflection;
+using NHibernate.Properties;
 
 namespace NHibernate.Envers.Entities.Mapper.Relation
 {
@@ -34,29 +36,33 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 			_nonInsertableFake = nonInsertableFake;
 			_referencedPropertyName = referencedPropertyName;
 		}
-		
+
 		public override bool MapToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
 		{
-			//var newData = new Dictionary<string, object>();
+			var newData = new Dictionary<string, object>();
 
 			// If this property is originally non-insertable, but made insertable because it is in a many-to-one "fake"
 			// bi-directional relation, we always store the "old", unchaged data, to prevent storing changes made
 			// to this field. It is the responsibility of the collection to properly update it if it really changed.
 			//_delegat.MapToMapFromEntity(newData, _nonInsertableFake ? oldObj : newObj);
 
-			//foreach (var entry in newData)
-			//{
-			//	data[entry.Key] = entry.Value;
-			//}
-
-			//return checkModified(session, newObj, oldObj);
-
-			return _propertyRefMapping.MapToMapFromEntity(
+			_propertyRefMapping.MapToMapFromEntity(
 				session,
-				data,
-				newObj, 
+				newData,
+				newObj,
 				_nonInsertableFake ? oldObj : newObj);
+
+			// Whatever we add here will be used when we insert a new revision record
+			foreach (var entry in newData)
+			{
+				data[entry.Key] = entry.Value;
+			}
+
+			return checkModified(session, newObj, oldObj);
+
 		}
+
+
 
 		public override void MapModifiedFlagsToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
 		{
