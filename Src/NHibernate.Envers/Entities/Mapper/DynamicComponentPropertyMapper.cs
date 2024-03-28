@@ -115,5 +115,10 @@ namespace NHibernate.Envers.Entities.Mapper
 				throw new NotSupportedException("Modified flags on dynamic components are currently not supported.");
 			}
 		}
+
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

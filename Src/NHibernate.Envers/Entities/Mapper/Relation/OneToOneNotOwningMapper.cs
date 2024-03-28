@@ -22,4 +22,6 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 				.GetSingleResult();
 		}
 	}
+
+
 }

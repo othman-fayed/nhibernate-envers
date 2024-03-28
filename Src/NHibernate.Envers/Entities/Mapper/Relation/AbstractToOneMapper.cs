@@ -65,6 +65,11 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 		protected abstract void NullSafeMapToEntityFromMap(AuditConfiguration verCfg, object obj, IDictionary data,
 		                                                   object primaryKey, IAuditReaderImplementor versionsReader, long revision);
 
+		public IPropertyMapper PrefixMappedProperties(string prefix)
+		{
+			throw new NotImplementedException();
+		}
+
 		protected class EntityInfo
 		{
 			public EntityInfo(System.Type entityClass, string entityName, bool isAudited)

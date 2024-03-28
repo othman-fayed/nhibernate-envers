@@ -146,7 +146,21 @@ namespace NHibernate.Envers.Configuration.Metadata
 			}
 			else if (type is ManyToOneType)
 			{
-				toOneRelationMetadataGenerator.AddToOne(parent, propertyAuditingData, value, currentMapper, entityName, insertable);
+				var oneToMany = value as ToOne;
+				if (oneToMany.ReferencedPropertyName != null && propertyAuditingData.RelationTargetAuditMode != RelationTargetAuditMode.NotAudited)
+				{
+					toOneRelationMetadataGenerator.AddToOnePropertyRef(
+						parent,
+						propertyAuditingData, 
+						value, 
+						currentMapper, 
+						entityName,
+						insertable);
+				}
+				else
+				{
+					toOneRelationMetadataGenerator.AddToOne(parent, propertyAuditingData, value, currentMapper, entityName, insertable);
+				}
 			}
 			else if (type is OneToOneType)
 			{

@@ -47,5 +47,14 @@ namespace NHibernate.Envers.Entities.Mapper
 
 		void MapModifiedFlagsToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj);
 		void MapModifiedFlagsToMapForCollectionChange(string collectionPropertyName, IDictionary<string, object> data);
+
+		/// <summary>
+		///  Creates a mapper with all mapped properties prefixed. A mapped property is a property which
+		///  is directly mapped to values (not composite).
+		/// </summary>
+		/// <param name="prefix">Prefix to add to mapped properties</param>
+		/// <returns>A copy of the current property mapper, with mapped properties prefixed.</returns>
+		IPropertyMapper PrefixMappedProperties(string prefix);
+
 	}
 }
