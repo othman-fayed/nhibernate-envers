@@ -139,14 +139,22 @@ namespace NHibernate.Envers.Configuration.Metadata
 			//var referencedEntityName = propertyValue.ReferencedEntityName;
 
 			// Generating the id mapper for the relation
-			//var relIdMapper = ownedIdMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
+			var relIdMapper = ownedIdMapping.IdMapper.PrefixMappedProperties(lastPropertyPrefix);
 
+			var propertyData = propertyAuditingData.GetPropertyData();
 			IPropertyMapper relMapper;
 			if (propertyRefMapping is SinglePropertyMapper single)
 			{
-				if(ownedIdMapping.IdMapper is SingleIdMapper single1)
+				if (ownedIdMapping.IdMapper is SingleIdMapper single1)
 				{
 					relMapper = single.ToMultiPropertyMapper(lastPropertyPrefix + single1.GetPropertyDataName());
+					propertyData = new Entities.PropertyData(
+						propertyData.Name,
+						lastPropertyPrefix + single1.GetPropertyDataName(),
+						propertyData.AccessType,
+						propertyData.UsingModifiedFlag,
+						propertyData.ModifiedFlagPropertyName
+						);
 				}
 				else
 				{
@@ -158,7 +166,6 @@ namespace NHibernate.Envers.Configuration.Metadata
 				relMapper = propertyRefMapping.PrefixMappedProperties(lastPropertyPrefix);
 			}
 
-			var propertyData = propertyAuditingData.GetPropertyData();
 			//if (relMapper is SingleIdMapper singleIdMapper)
 			//{
 			//	relMapper = new SingleIdMapper(new Entities.PropertyData(
@@ -253,6 +260,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 			//mapper.AddComposite(propertyData, new ToOneIdMapper(null, propertyData, referencedEntityName, nonInsertableFake));
 
 			mapper.AddComposite(propertyData, new ToOnePropertyRefMapper(
+				relIdMapper,
 				relMapper,
 				//propertyRefMapping,
 				propertyData,
