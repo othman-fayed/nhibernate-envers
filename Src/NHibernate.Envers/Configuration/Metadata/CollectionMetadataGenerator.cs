@@ -97,28 +97,31 @@ namespace NHibernate.Envers.Configuration.Metadata
 			var owningManyToOneWithJoinTableBidirectional = value is ManyToOne && _propertyAuditingData.MappedBy != null;
 			var fakeOneToManyBidirectional = (value is OneToMany) && (_propertyAuditingData.MappedBy != null);
 
-			var fullyOwnedByChild = (value is OneToMany) &&
-				_propertyAuditingData.MappedBy == null &&
-				!_propertyValue.IsInverse;  // TODO: Need to enforce ownership check
-											//var relationType = fullyOwnedByChild ? RelationType.ToManyNotOwning : RelationType.ToManyOwning;	
+			// TODO: This code was added when attempting to remove the middle table for a one-to-many relation
+			// However this proved too dificullt since there is a need to fix all table and re-introduce the relation column
 
-			var isAdded = false;
-			if (oneToManyAttachedType && fullyOwnedByChild)
-			{
-				Property mappedByProperty = getMappedByProperty(_propertyValue, false);
-				if (mappedByProperty != null)
-				{
-					addOneToManyAttachedOwned(mappedByProperty);
-					isAdded = true;
-				}
-				else
-				{
-					// Not even a backRef exists
-				}
-			}
+			//var fullyOwnedByChild = (value is OneToMany) &&
+			//	_propertyAuditingData.MappedBy == null &&
+			//	!_propertyValue.IsInverse;  // TODO: Need to enforce ownership check
+			//								//var relationType = fullyOwnedByChild ? RelationType.ToManyNotOwning : RelationType.ToManyOwning;	
 
-			if (!isAdded)
-			{
+			//var isAdded = false;
+			//if (oneToManyAttachedType && fullyOwnedByChild)
+			//{
+			//	Property mappedByProperty = getMappedByProperty(_propertyValue, false);
+			//	if (mappedByProperty != null)
+			//	{
+			//		addOneToManyAttachedOwned(mappedByProperty);
+			//		isAdded = true;
+			//	}
+			//	else
+			//	{
+			//		// Not even a backRef exists
+			//	}
+			//}
+
+			//if (!isAdded)
+			//{
 				if (oneToManyAttachedType && (inverseOneToMany || fakeOneToManyBidirectional || owningManyToOneWithJoinTableBidirectional))
 				{
 					// A one-to-many relation mapped using @ManyToOne and @OneToMany(mappedBy="...")
@@ -129,7 +132,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 					// All other kinds of relations require a middle (join) table.
 					addWithMiddleTable();
 				}
-			}
+			//}
 		}
 
 		private MiddleIdData createMiddleIdData(IdMappingData idMappingData, string prefix, string entityName)
