@@ -38,23 +38,6 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
 		}
 
-		public MiddleIdData(AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, Property mappedByProperty, string entityName, bool audited)
-		{
-			OriginalMapper = mappingData.IdMapper;
-			if (mappedByProperty.Type.IsAssociationType)
-			{
-				PrefixedMapper = mappingData.IdMapper.PrefixMappedProperties(mappedByProperty.Name + MappingTools.RelationCharacter);
-			}
-			else
-			{
-				var singleIdMapper = mappingData.IdMapper as SingleIdMapper;
-				PrefixedMapper = singleIdMapper.SetName("LegOrSectorID");	// HACK
-
-			}
-			EntityName = entityName;
-			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
-		}
-
 		public IIdMapper OriginalMapper { get; }
 		public IIdMapper PrefixedMapper { get; }
 		public string EntityName { get; }
