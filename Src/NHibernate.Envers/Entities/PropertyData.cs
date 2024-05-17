@@ -42,9 +42,21 @@ namespace NHibernate.Envers.Entities
 			IsSynthentic = isSynthentic;
 		}
 
+		/// <summary>
+		/// Name of the property.
+		/// </summary>
 		public string Name { get; }
+		/// <summary>
+		/// Name of the property in the bean.
+		/// </summary>
 		public string BeanName { get; }
+		/// <summary>
+		/// Accessor type for this property.
+		/// </summary>
 		public string AccessType { get; }
+		/// <summary>
+		/// Defines if field changes should be tracked
+		/// </summary>
 		public bool UsingModifiedFlag { get; }
 		public string ModifiedFlagPropertyName { get; }
 		public bool IsSynthentic { get; }

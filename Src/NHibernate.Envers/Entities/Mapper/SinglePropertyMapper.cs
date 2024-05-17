@@ -34,6 +34,7 @@ namespace NHibernate.Envers.Entities.Mapper
 			_propertyData = propertyData;
 		}
 
+		/// <inheritdoc cref="IPropertyMapper.MapToMapFromEntity(ISessionImplementor, IDictionary{string, object}, object, object)"/>
 		public bool MapToMapFromEntity(ISessionImplementor session, IDictionary<string, object> data, object newObj, object oldObj)
 		{
 			data[_propertyData.Name] = newObj;

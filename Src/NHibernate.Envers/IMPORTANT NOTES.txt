@@ -1,0 +1,2 @@
+﻿Envers has problme handling property-ref mappings.
+Mapping dictionary using property-ref was causing doble record (dulpicate key) error;

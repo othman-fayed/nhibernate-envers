@@ -88,6 +88,7 @@ namespace NHibernate.Envers.Entities.Mapper
 			return ret;
 		}
 
+		/// <inheritdoc cref="IPropertyMapper.MapToMapFromEntity(ISessionImplementor, IDictionary{string, object}, object, object)"/>
 		public bool MapToMapFromEntity(ISessionImplementor session,
 										IDictionary<string, object> data,
 										object newObj,
@@ -99,6 +100,7 @@ namespace NHibernate.Envers.Entities.Mapper
 				////synthetic properties are not part of the entity model; therefore they should be ignored.
 				//if (propertyData.IsSynthentic)
 				//	continue;
+				var propertyMapper = Properties[propertyData];
 
 				IGetter getter;
 				if (newObj != null)
@@ -114,7 +116,7 @@ namespace NHibernate.Envers.Entities.Mapper
 					return false;
 				}
 
-				ret |= Properties[propertyData].MapToMapFromEntity(session, data,
+				ret |= propertyMapper.MapToMapFromEntity(session, data,
 						newObj == null ? null : getter.Get(newObj),
 						oldObj == null ? null : getter.Get(oldObj));
 			}

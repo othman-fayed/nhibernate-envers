@@ -9,7 +9,17 @@ namespace NHibernate.Envers.Tools.Reflection
 	{
 		public static IGetter GetGetter(System.Type cls, PropertyData propertyData)
 		{
-			return GetGetter(cls, propertyData.BeanName, propertyData.AccessType);
+			try
+			{
+				return GetGetter(cls, propertyData.BeanName, propertyData.AccessType);
+			}
+			catch (Exception)
+			{
+				// Note:
+				// We are falling back to load property value from it's name
+				// However, this might be what is required, MUST verify that we are not breaking anything
+				return GetGetter(cls, propertyData.Name, propertyData.AccessType);
+			}
 		}
 
 		public static IGetter GetGetter(System.Type cls, string propertyName, string accessorType)
