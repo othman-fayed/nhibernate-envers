@@ -21,6 +21,9 @@ namespace NHibernate.Envers.Configuration.Metadata
 {
 	public sealed class CollectionMetadataGenerator
 	{
+#if DEBUG
+		public static List<string> Matching = new List<string>();
+#endif
 		private static readonly INHibernateLogger log = NHibernateLogger.For(typeof(CollectionMetadataGenerator));
 
 		private readonly IMetaDataStore _metaDataStore;
@@ -105,23 +108,35 @@ namespace NHibernate.Envers.Configuration.Metadata
 			//	!_propertyValue.IsInverse;  // TODO: Need to enforce ownership check
 			//								//var relationType = fullyOwnedByChild ? RelationType.ToManyNotOwning : RelationType.ToManyOwning;	
 
-			//var isAdded = false;
-			//if (oneToManyAttachedType && fullyOwnedByChild)
-			//{
-			//	Property mappedByProperty = getMappedByProperty(_propertyValue, false);
-			//	if (mappedByProperty != null)
-			//	{
-			//		addOneToManyAttachedOwned(mappedByProperty);
-			//		isAdded = true;
-			//	}
-			//	else
-			//	{
-			//		// Not even a backRef exists
-			//	}
-			//}
+			/**
+			 * Attempt 2. Loading query complained about backref column not being found in entity
+			 */
 
-			//if (!isAdded)
-			//{
+			var fullyOwnedByChild = value is OneToMany &&
+				_propertyAuditingData.MappedBy == null &&
+				_propertyValue.Key.ColumnSpan == 1 &&
+				_propertyValue.Key.IsUpdateable == false
+				;
+
+			var isAdded = false;
+			if (oneToManyAttachedType && fullyOwnedByChild)
+			{
+				Property mappedByProperty = getMappedByProperty(_propertyValue, false);
+				if (mappedByProperty != null)
+				{
+					//mappedByProperty.Name = mappedByProperty.Name.Replace(".", "_");
+					Matching.Add(_propertyValue.ToString());
+					//	//addOneToManyAttachedOwned(mappedByProperty);
+					//	isAdded = true;
+				}
+				//else
+				//{
+				//	// Not even a backRef exists
+				//}
+			}
+
+			if (!isAdded)
+			{
 				if (oneToManyAttachedType && (inverseOneToMany || fakeOneToManyBidirectional || owningManyToOneWithJoinTableBidirectional))
 				{
 					// A one-to-many relation mapped using @ManyToOne and @OneToMany(mappedBy="...")
@@ -132,7 +147,7 @@ namespace NHibernate.Envers.Configuration.Metadata
 					// All other kinds of relations require a middle (join) table.
 					addWithMiddleTable();
 				}
-			//}
+			}
 		}
 
 		private MiddleIdData createMiddleIdData(IdMappingData idMappingData, string prefix, string entityName)
