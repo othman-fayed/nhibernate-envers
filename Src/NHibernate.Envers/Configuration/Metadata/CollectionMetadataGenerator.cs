@@ -125,7 +125,9 @@ namespace NHibernate.Envers.Configuration.Metadata
 				if (mappedByProperty != null)
 				{
 					//mappedByProperty.Name = mappedByProperty.Name.Replace(".", "_");
+#if DEBUG
 					Matching.Add(_propertyValue.ToString());
+#endif
 					//	//addOneToManyAttachedOwned(mappedByProperty);
 					//	isAdded = true;
 				}
