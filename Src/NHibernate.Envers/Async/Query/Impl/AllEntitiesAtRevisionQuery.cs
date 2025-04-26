@@ -49,7 +49,7 @@ namespace NHibernate.Envers.Query.Impl
 			var originalIdPropertyName = verEntCfg.OriginalIdPropName;
 
 			var referencedIdData = new MiddleIdData(verEntCfg, AuditConfiguration.EntCfg[EntityName].IdMappingData,
-					null, EntityName, AuditConfiguration.EntCfg.IsVersioned(EntityName));
+					prefix: null, EntityName, AuditConfiguration.EntCfg.IsVersioned(EntityName));
 
 			// (selecting e entities at revision :revision)
 			// --> based on auditStrategy (see above)

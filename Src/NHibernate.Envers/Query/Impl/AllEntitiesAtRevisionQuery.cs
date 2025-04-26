@@ -42,6 +42,11 @@ namespace NHibernate.Envers.Query.Impl
 			var revisionPropertyPath = verEntCfg.RevisionNumberPath;
 			var originalIdPropertyName = verEntCfg.OriginalIdPropName;
 
+			// Source
+			//var referencedIdData = new MiddleIdData(verEntCfg, AuditConfiguration.EntCfg[EntityName].IdMappingData,
+			//		null, EntityName, AuditConfiguration.EntCfg.IsVersioned(EntityName));
+			
+			// Oz
 			var referencedIdData = new MiddleIdData(verEntCfg,
 										   AuditConfiguration.EntCfg[EntityName].IdMappingData,
 										   prefix: null,
