@@ -1,6 +1,8 @@
 ﻿using System;
 using NHibernate.Envers.Configuration;
 using NHibernate.Envers.Entities.Mapper.Id;
+using NHibernate.Envers.Tools;
+using NHibernate.Mapping;
 
 namespace NHibernate.Envers.Entities.Mapper.Relation
 {
@@ -16,6 +18,31 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 		{
 			OriginalMapper = mappingData.IdMapper;
 			PrefixedMapper = mappingData.IdMapper.PrefixMappedProperties(prefix);
+			EntityName = entityName;
+			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
+		}
+
+		/// <summary>
+		/// HACK by Oz to handle the LegOrSectorID property in the middle table.
+		/// </summary>
+		/// <param name="mappedByProperty"></param>
+		/// <param name="verEntCfg"></param>
+		/// <param name="mappingData"></param>
+		/// <param name="entityName"></param>
+		/// <param name="audited"></param>
+		public MiddleIdData(Property mappedByProperty, AuditEntitiesConfiguration verEntCfg, IdMappingData mappingData, string entityName, bool audited)
+		{
+			OriginalMapper = mappingData.IdMapper;
+			if (mappedByProperty.Type.IsAssociationType)
+			{
+				PrefixedMapper = mappingData.IdMapper.PrefixMappedProperties(mappedByProperty.Name + MappingTools.RelationCharacter);
+			}
+			else
+			{
+				var singleIdMapper = mappingData.IdMapper as SingleIdMapper;
+				PrefixedMapper = singleIdMapper.SetName("LegOrSectorID");   // HACK
+
+			}
 			EntityName = entityName;
 			AuditEntityName = audited ? verEntCfg.GetAuditEntityName(entityName) : null;
 		}

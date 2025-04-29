@@ -211,6 +211,7 @@ namespace NHibernate.Envers.Entities.Mapper.Relation
 														long revision,
 														bool removed);
 
+		/// <inheritdoc cref="IPropertyMapper.MapToEntityFromMap(AuditConfiguration, object, IDictionary, object, IAuditReaderImplementor, long)"/>
 		public void MapToEntityFromMap(AuditConfiguration verCfg, 
 										object obj, 
 										IDictionary data, 
