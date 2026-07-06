@@ -53,7 +53,13 @@ namespace NHibernate.Envers.Reader
 		{
 			if (log.IsDebugEnabled())
 				log.Debug(logAddEntityName, id, revision, entity.GetType().FullName, entityName);
-			entityNameCache.Add(new Tuple<object, long, object>(id, revision, entity), entityName);
+			// Overwrite instead of Dictionary.Add. Domain entities may override
+			// Equals/GetHashCode by Id, so a second instantiation of the same entity at the
+			// same revision (reachable under a different resolved entity name — the
+			// instantiation-dedup cache in EntityInstantiator keys on entityName, this cache
+			// does not) produces an equal key from a distinct instance and .Add would throw
+			// "An item with the same key has already been added".
+			entityNameCache[new Tuple<object, long, object>(id, revision, entity)] = entityName;
 		}
 
 		public bool TryGetEntityName(object id, long revision, object entity, out string entityName)
